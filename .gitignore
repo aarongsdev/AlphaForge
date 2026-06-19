@@ -134,3 +134,6 @@ _ide_helper.php
 # composer.lock is intentionally NOT ignored so builds are reproducible.
 # Remove the line below only if you explicitly want to ignore it.
 # composer.lock
+
+# Claude Code internal session data
+.claude/
