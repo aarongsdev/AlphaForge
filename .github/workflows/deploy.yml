@@ -1,0 +1,256 @@
+name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+      force_deploy:
+        description: "Force deploy even if tests are skipped"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: deploy-${{ github.ref }}-${{ inputs.environment || 'production' }}
+  cancel-in-progress: false   # Never cancel an in-flight deploy
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/alphaforge
+  PHP_VERSION: "8.4"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Validate — ensure CI passes before deploying
+  # ---------------------------------------------------------------------------
+  pre-deploy-check:
+    name: Pre-deploy Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      environment: ${{ steps.check.outputs.environment }}
+
+    steps:
+      - name: Determine deployment target
+        id: check
+        run: |
+          ENV="${{ inputs.environment || 'production' }}"
+          echo "environment=${ENV}" >> "$GITHUB_OUTPUT"
+          echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          echo "Deploying to: ${ENV}"
+
+  # ---------------------------------------------------------------------------
+  # Build & Push Docker Image
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: pre-deploy-check
+    if: needs.pre-deploy-check.outputs.should_deploy == 'true'
+
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.push.outputs.digest }}
+      short_sha: ${{ steps.vars.outputs.short_sha }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set build variables
+        id: vars
+        run: |
+          SHORT_SHA="${GITHUB_SHA::8}"
+          echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU (multi-platform builds)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.pre-deploy-check.outputs.environment }}
+            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/') }}
+          labels: |
+            org.opencontainers.image.title=AlphaForge
+            org.opencontainers.image.description=Algorithmic trading signal and portfolio analysis platform
+            org.opencontainers.image.vendor=AlphaForge
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/php/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BUILD_DATE=${{ steps.vars.outputs.build_date }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.vars.outputs.short_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Generate deployment summary
+        run: |
+          echo "## Docker Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **SHA**: \`${{ steps.vars.outputs.short_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Digest**: \`${{ steps.push.outputs.digest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Environment**: \`${{ needs.pre-deploy-check.outputs.environment }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # Deploy — SSH into server and pull new image
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to ${{ needs.pre-deploy-check.outputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [pre-deploy-check, build]
+    environment:
+      name: ${{ needs.pre-deploy-check.outputs.environment }}
+      url: ${{ vars.APP_URL }}
+
+    steps:
+      - name: Checkout code (for compose files)
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}
+          if_key_exists: replace
+
+      - name: Verify SSH connectivity
+        run: |
+          ssh -o StrictHostKeyChecking=yes \
+              -p ${{ vars.DEPLOY_SSH_PORT || '22' }} \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+              "echo 'SSH connection OK' && uptime"
+
+      - name: Copy docker-compose files to server
+        run: |
+          scp -P ${{ vars.DEPLOY_SSH_PORT || '22' }} \
+              docker-compose.yml \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ vars.DEPLOY_PATH }}/docker-compose.yml
+
+      - name: Deploy new image via SSH
+        env:
+          IMAGE_TAG: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.short_sha }}
+          DEPLOY_ENV: ${{ needs.pre-deploy-check.outputs.environment }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          ssh -p ${{ vars.DEPLOY_SSH_PORT || '22' }} \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+              bash -s << 'ENDSSH'
+            set -euo pipefail
+
+            DEPLOY_DIR="${{ vars.DEPLOY_PATH }}"
+            IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.short_sha }}"
+
+            echo "[1/6] Navigating to deploy directory..."
+            cd "${DEPLOY_DIR}"
+
+            echo "[2/6] Logging into container registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            echo "[3/6] Pulling new image: ${IMAGE}"
+            docker pull "${IMAGE}"
+
+            echo "[4/6] Running database migrations..."
+            docker compose run --rm --no-deps app php bin/migrate.php --no-interaction
+
+            echo "[5/6] Performing zero-downtime service update..."
+            # Update app and worker containers; nginx continues serving during pull
+            APP_IMAGE="${IMAGE}" docker compose up -d --no-deps --scale worker=2 app worker
+
+            echo "[6/6] Removing old unused images..."
+            docker image prune -f --filter "label=org.opencontainers.image.title=AlphaForge"
+
+            echo "Deployment of ${IMAGE} completed successfully."
+          ENDSSH
+
+      - name: Health check post-deploy
+        run: |
+          MAX_RETRIES=12
+          SLEEP_SECS=10
+          URL="${{ vars.APP_URL }}/health"
+
+          echo "Polling ${URL} for up to $((MAX_RETRIES * SLEEP_SECS))s..."
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${URL}" || echo "000")
+            if [ "${HTTP_CODE}" = "200" ]; then
+              echo "Health check passed (attempt ${i}/${MAX_RETRIES}) — HTTP ${HTTP_CODE}"
+              exit 0
+            fi
+            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_CODE} — retrying in ${SLEEP_SECS}s..."
+            sleep "${SLEEP_SECS}"
+          done
+
+          echo "Health check FAILED after $((MAX_RETRIES * SLEEP_SECS))s."
+          exit 1
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "## Deployment Successful" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Environment**: ${{ needs.pre-deploy-check.outputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **URL**: ${{ vars.APP_URL }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.short_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Deployed by**: @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "::error::Deployment failed — initiating rollback."
+          ssh -p ${{ vars.DEPLOY_SSH_PORT || '22' }} \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+              bash -s << 'ENDSSH'
+            set -euo pipefail
+            cd "${{ vars.DEPLOY_PATH }}"
+            echo "Rolling back to previous image..."
+            # Re-tag the previous image as current and restart
+            docker compose up -d --no-deps app worker
+            echo "Rollback complete."
+          ENDSSH

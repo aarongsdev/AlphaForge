@@ -1,0 +1,203 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop", "feature/**", "fix/**"]
+  pull_request:
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHP_VERSION: "8.4"
+  COMPOSER_NO_INTERACTION: 1
+  COMPOSER_MEMORY_LIMIT: -1
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Lint — PHP_CodeSniffer
+  # ---------------------------------------------------------------------------
+  lint:
+    name: PHP CodeSniffer (PSR-12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          tools: php-cs-fixer, phpcs
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-scripts
+
+      - name: Run PHP_CodeSniffer
+        run: vendor/bin/phpcs --standard=PSR12 --extensions=php --ignore=vendor/ src/ tests/
+
+  # ---------------------------------------------------------------------------
+  # Static Analysis — PHPStan
+  # ---------------------------------------------------------------------------
+  analyse:
+    name: PHPStan Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ env.PHP_VERSION }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_pgsql, redis, intl, mbstring, gd, zip, bcmath, pcntl, posix
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-scripts
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse src/ --level=8 --no-progress
+
+  # ---------------------------------------------------------------------------
+  # Tests — PHPUnit with PostgreSQL & Redis
+  # ---------------------------------------------------------------------------
+  test:
+    name: PHPUnit Tests (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["8.4"]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: alphaforge_test
+          POSTGRES_USER: alphaforge
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U alphaforge -d alphaforge_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pdo, pdo_pgsql, pgsql, redis, intl, mbstring, gd, zip, bcmath, pcntl, posix
+          coverage: xdebug
+          ini-values: |
+            memory_limit=512M
+            max_execution_time=120
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ matrix.php-version }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-${{ matrix.php-version }}-
+            composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Copy test environment file
+        run: cp .env.example .env
+
+      - name: Run database initialization
+        env:
+          PGPASSWORD: test_password
+        run: psql -h 127.0.0.1 -U alphaforge -d alphaforge_test -f docker/postgres/init.sql
+
+      - name: Run PHPUnit tests
+        env:
+          APP_ENV: testing
+          APP_KEY: base64:dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXQ=
+          APP_DEBUG: true
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: alphaforge_test
+          DB_USERNAME: alphaforge
+          DB_PASSWORD: test_password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          REDIS_PASSWORD: ""
+          JWT_SECRET: test_jwt_secret_that_is_at_least_64_chars_long_for_hs256_validation_ok
+        run: >
+          vendor/bin/phpunit
+          --configuration phpunit.xml.dist
+          --coverage-clover=coverage/clover.xml
+          --colors=always
+          --testdox
+
+      - name: Upload coverage to Codecov
+        if: matrix.php-version == '8.4'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/clover.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Summary gate — all jobs must pass
+  # ---------------------------------------------------------------------------
+  ci-success:
+    name: CI Passed
+    needs: [lint, analyse, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all jobs succeeded
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.analyse.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ]; then
+            echo "One or more CI jobs failed."
+            exit 1
+          fi
+          echo "All CI jobs passed."

@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — AlphaForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Portfolio header ─────────────────────────────────────── */
+.portfolio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.portfolio-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  flex: 0 0 auto;
+}
+.portfolio-selector {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #0f1629 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") no-repeat right 0.75rem center;
+  border: 1px solid #1e2d4d;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.portfolio-selector:hover,
+.portfolio-selector:focus {
+  border-color: #2563eb;
+  outline: none;
+}
+
+/* ── Metric cards ─────────────────────────────────────────── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.metric-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.2s;
+}
+.metric-card:hover { border-color: #2563eb; }
+.metric-card .m-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.metric-card .m-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.2;
+}
+.metric-card .m-value.positive { color: #10b981; }
+.metric-card .m-value.negative { color: #ef4444; }
+.metric-card .m-sub {
+  font-size: 0.8125rem;
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+.metric-card .m-sub.positive { color: #10b981; }
+.metric-card .m-sub.negative { color: #ef4444; }
+
+/* ── Two-column charts layout ─────────────────────────────── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.af-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #1e2d4d;
+  margin-bottom: 1.25rem;
+}
+.card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.chart-wrapper {
+  position: relative;
+  height: 260px;
+}
+.alloc-chart-wrapper {
+  position: relative;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Allocation legend */
+.alloc-legend {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-name { color: #94a3b8; flex: 1; }
+.legend-pct { color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+
+/* ── Tables ───────────────────────────────────────────────── */
+.section-block {
+  margin-bottom: 2rem;
+}
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.section-title-row h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.table-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.data-table thead tr {
+  background: #0f1629;
+}
+.data-table thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.data-table thead th:last-child { text-align: center; }
+.data-table tbody tr {
+  border-top: 1px solid #1e2d4d;
+  transition: background 0.15s;
+}
+.data-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+.data-table tbody td {
+  padding: 0.875rem 1rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+.td-symbol {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: #e2e8f0;
+}
+.td-mono {
+  font-family: 'JetBrains Mono', monospace;
+  color: #e2e8f0;
+}
+.td-positive {
+  font-family: 'JetBrains Mono', monospace;
+  color: #10b981;
+  font-weight: 500;
+}
+.td-negative {
+  font-family: 'JetBrains Mono', monospace;
+  color: #ef4444;
+  font-weight: 500;
+}
+.td-center { text-align: center; }
+
+/* Signal badges */
+.signal-badge {
+  display: inline-block;
+  padding: 0.2rem 0.625rem;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.signal-badge.buy {
+  background: rgba(16,185,129,0.15);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.3);
+}
+.signal-badge.sell {
+  background: rgba(239,68,68,0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.signal-badge.hold {
+  background: rgba(245,158,11,0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.type-badge {
+  display: inline-block;
+  padding: 0.2rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  background: rgba(37,99,235,0.15);
+  color: #2563eb;
+  border: 1px solid rgba(37,99,235,0.3);
+}
+
+/* Action buttons in table */
+.btn-close-pos {
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(239,68,68,0.4);
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.btn-close-pos:hover {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.7);
+}
+
+/* ── Risk metric cards ────────────────────────────────────── */
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.risk-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+}
+.risk-card .r-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.risk-card .r-value {
+  font-size: 1.625rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.risk-card .r-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+/* ── Modal overlay ────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-card {
+  background: #0f1629;
+  border: 1px solid #1e2d4d;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  position: relative;
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #1e2d4d;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.modal-close:hover { background: #1e2d4d; color: #e2e8f0; }
+
+/* Form */
+.form-group { margin-bottom: 1rem; }
+.form-label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #94a3b8;
+  margin-bottom: 0.375rem;
+}
+.form-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.form-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+.form-input::placeholder { color: #475569; }
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.radio-group {
+  display: flex;
+  border: 1px solid #1e2d4d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.radio-option {
+  flex: 1;
+  position: relative;
+}
+.radio-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.radio-label {
+  display: block;
+  text-align: center;
+  padding: 0.625rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #141d35;
+  transition: background 0.2s, color 0.2s;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+.radio-option input[type="radio"]:checked + .radio-label.buy-label {
+  background: rgba(16,185,129,0.2);
+  color: #10b981;
+}
+.radio-option input[type="radio"]:checked + .radio-label.sell-label {
+  background: rgba(239,68,68,0.2);
+  color: #ef4444;
+}
+.form-textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.form-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+.form-textarea::placeholder { color: #475569; }
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.btn-primary {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-secondary {
+  padding: 0.75rem 1.25rem;
+  background: #1e2d4d;
+  color: #94a3b8;
+  border: 1px solid #1e2d4d;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-secondary:hover { background: #243450; color: #e2e8f0; }
+
+/* ── Toast notification ───────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-left: 4px solid #10b981;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
+}
+.toast.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+.toast-icon { color: #10b981; font-size: 1.125rem; }
+
+/* ── Topbar ticker styles ─────────────────────────────────── */
+.ticker-chip {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+.t-sym { color: #64748b; }
+.t-price { color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+.t-chg.positive { color: #10b981; }
+.t-chg.negative { color: #ef4444; }
+
+/* ── Open button (header) ─────────────────────────────────── */
+.btn-nueva-op {
+  padding: 0.625rem 1.25rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+.btn-nueva-op:hover { background: #1d4ed8; }
+.btn-nueva-op:active { transform: scale(0.97); }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .metrics-grid { grid-template-columns: repeat(3, 1fr); }
+  .charts-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  .risk-grid { grid-template-columns: repeat(2, 1fr); }
+  .data-table { font-size: 0.8125rem; }
+  .data-table thead th, .data-table tbody td { padding: 0.625rem 0.75rem; }
+}
+@media (max-width: 600px) {
+  .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .risk-grid { grid-template-columns: 1fr 1fr; }
+  .portfolio-header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="#2563eb" opacity="0.2" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="16" y="21" text-anchor="middle" fill="#2563eb" font-size="11" font-weight="700" font-family="Inter">AF</text>
+    </svg>
+    <span class="brand-text">AlphaForge</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="signals.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Señales IA
+    </a>
+    <a href="portfolio.html" class="nav-item active">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Portfolio
+    </a>
+    <a href="analysis.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Análisis
+    </a>
+    <a href="backtesting.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+      Backtesting
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="user-initials">U</div>
+      <div class="user-details">
+        <div class="user-name" id="user-display-name">Usuario</div>
+        <div class="user-role" id="user-role-display">viewer</div>
+      </div>
+    </div>
+    <button onclick="logout()" class="logout-btn" title="Cerrar sesión">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════
+     TOPBAR
+════════════════════════════════════════════════ -->
+<header class="topbar">
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div style="position:relative;flex:1;max-width:400px;">
+    <input type="text" class="global-search" placeholder="Buscar símbolo... AAPL, BTC, SPY" autocomplete="off" style="width:100%;padding:0.5rem 1rem;background:#0f1629;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;box-sizing:border-box;">
+  </div>
+  <div style="display:flex;gap:1.5rem;align-items:center;">
+    <div class="ticker-chip">
+      <span class="t-sym">S&amp;P500</span>
+      <span class="t-price">5,234.18</span>
+      <span class="t-chg positive">+0.43%</span>
+    </div>
+    <div class="ticker-chip">
+      <span class="t-sym">NASDAQ</span>
+      <span class="t-price">18,421.31</span>
+      <span class="t-chg positive">+0.61%</span>
+    </div>
+    <div class="ticker-chip">
+      <span class="t-sym">BTC</span>
+      <span class="t-price">67,842</span>
+      <span class="t-chg negative">-1.24%</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:#94a3b8;">
+      <span id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;display:inline-block;"></span>
+      <span id="market-status-label">MERCADO</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════ -->
+<main class="main-content" style="padding:2rem;max-width:1600px;margin:0 auto;">
+
+  <!-- 1. Portfolio Header Row -->
+  <div class="portfolio-header">
+    <h1>Mi Portfolio</h1>
+    <select class="portfolio-selector" id="portfolio-selector">
+      <option value="demo">Demo Portfolio</option>
+      <option value="agresivo">Agresivo</option>
+      <option value="conservador">Conservador</option>
+    </select>
+    <button class="btn-nueva-op" onclick="openModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nueva Operación
+    </button>
+  </div>
+
+  <!-- 2. Five Metric Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="m-label">Valor Total</div>
+      <div class="m-value">$24,380.00</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">P&amp;L Diario</div>
+      <div class="m-value positive">+$342.50</div>
+      <div class="m-sub positive">+1.42% hoy</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">P&amp;L Total</div>
+      <div class="m-value positive">+$4,380.00</div>
+      <div class="m-sub positive">+21.9% total</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Posiciones Abiertas</div>
+      <div class="m-value">6</div>
+    </div>
+    <div class="metric-card">
+      <div class="m-label">Win Rate</div>
+      <div class="m-value positive">68.5%</div>
+    </div>
+  </div>
+
+  <!-- 3. Charts Row -->
+  <div class="charts-row">
+    <!-- Equity Curve -->
+    <div class="af-card">
+      <div class="card-header">
+        <h3>Curva de Capital</h3>
+        <div style="display:flex;gap:0.5rem;">
+          <span style="font-size:0.75rem;color:#64748b;">Ene 2024 – Jun 2024</span>
+        </div>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="equity-curve"></canvas>
+      </div>
+    </div>
+
+    <!-- Allocation Doughnut -->
+    <div class="af-card">
+      <div class="card-header">
+        <h3>Distribución</h3>
+        <span style="font-size:0.75rem;color:#64748b;">Por activo</span>
+      </div>
+      <div class="alloc-chart-wrapper">
+        <canvas id="alloc-chart"></canvas>
+      </div>
+      <div class="alloc-legend" id="alloc-legend"></div>
+    </div>
+  </div>
+
+  <!-- 4. Posiciones Abiertas -->
+  <div class="section-block">
+    <div class="section-title-row">
+      <h2>Posiciones Abiertas</h2>
+      <span style="font-size:0.8125rem;color:#64748b;">6 activas</span>
+    </div>
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Símbolo</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Precio Avg</th>
+            <th>Precio Actual</th>
+            <th>P&amp;L $</th>
+            <th>P&amp;L %</th>
+            <th>Señal IA</th>
+            <th style="text-align:center;">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-symbol">AAPL</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">50 acc</td>
+            <td class="td-mono">$165.20</td>
+            <td class="td-mono">$182.50</td>
+            <td class="td-positive">+$865.00</td>
+            <td class="td-positive">+10.47%</td>
+            <td class="td-center"><span class="signal-badge buy">BUY</span></td>
+            <td class="td-center"><button class="btn-close-pos" onclick="showToast('Posición AAPL cerrada')">Cerrar</button></td>
+          </tr>
+          <tr>
+            <td class="td-symbol">NVDA</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">10 acc</td>
+            <td class="td-mono">$625.00</td>
+            <td class="td-mono">$875.00</td>
+            <td class="td-positive">+$2,500.00</td>
+            <td class="td-positive">+40.00%</td>
+            <td class="td-center"><span class="signal-badge buy">BUY</span></td>
+            <td class="td-center"><button class="btn-close-pos" onclick="showToast('Posición NVDA cerrada')">Cerrar</button></td>
+          </tr>
+          <tr>
+            <td class="td-symbol">MSFT</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">20 acc</td>
+            <td class="td-mono">$380.00</td>
+            <td class="td-mono">$415.20</td>
+            <td class="td-positive">+$704.00</td>
+            <td class="td-positive">+9.26%</td>
+            <td class="td-center"><span class="signal-badge buy">BUY</span></td>
+            <td class="td-center"><button class="btn-close-pos" onclick="showToast('Posición MSFT cerrada')">Cerrar</button></td>
+          </tr>
+          <tr>
+            <td class="td-symbol">TSLA</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">15 acc</td>
+            <td class="td-mono">$180.00</td>
+            <td class="td-mono">$172.00</td>
+            <td class="td-negative">-$120.00</td>
+            <td class="td-negative">-4.44%</td>
+            <td class="td-center"><span class="signal-badge hold">HOLD</span></td>
+            <td class="td-center"><button class="btn-close-pos" onclick="showToast('Posición TSLA cerrada')">Cerrar</button></td>
+          </tr>
+          <tr>
+            <td class="td-symbol">BTC</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">0.15 BTC</td>
+            <td class="td-mono">$58,000</td>
+            <td class="td-mono">$67,842</td>
+            <td class="td-positive">+$1,476.30</td>
+            <td class="td-positive">+16.97%</td>
+            <td class="td-center"><span class="signal-badge sell">SELL</span></td>
+            <td class="td-center"><button class="btn-close-pos" onclick="showToast('Posición BTC cerrada')">Cerrar</button></td>
+          </tr>
+          <tr>
+            <td class="td-symbol">ETH</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">2.5 ETH</td>
+            <td class="td-mono">$3,100</td>
+            <td class="td-mono">$3,450</td>
+            <td class="td-positive">+$875.00</td>
+            <td class="td-positive">+11.29%</td>
+            <td class="td-center"><span class="signal-badge buy">BUY</span></td>
+            <td class="td-center"><button class="btn-close-pos" onclick="showToast('Posición ETH cerrada')">Cerrar</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 6. Historial de Operaciones -->
+  <div class="section-block">
+    <div class="section-title-row">
+      <h2>Historial de Operaciones</h2>
+      <span style="font-size:0.8125rem;color:#64748b;">8 operaciones cerradas</span>
+    </div>
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Símbolo</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>P&amp;L $</th>
+            <th>P&amp;L %</th>
+            <th>Fecha Cierre</th>
+            <th>Duración</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-symbol">AAPL</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">100 acc</td>
+            <td class="td-mono">$145.00</td>
+            <td class="td-mono">$167.50</td>
+            <td class="td-positive">+$2,250</td>
+            <td class="td-positive">+15.52%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-03-15</td>
+            <td style="color:#64748b;font-size:0.8125rem;">45 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">NVDA</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">20 acc</td>
+            <td class="td-mono">$450.00</td>
+            <td class="td-mono">$580.00</td>
+            <td class="td-positive">+$2,600</td>
+            <td class="td-positive">+28.89%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-02-28</td>
+            <td style="color:#64748b;font-size:0.8125rem;">62 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">TSLA</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">30 acc</td>
+            <td class="td-mono">$250.00</td>
+            <td class="td-mono">$215.00</td>
+            <td class="td-negative">-$1,050</td>
+            <td class="td-negative">-14.00%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-01-20</td>
+            <td style="color:#64748b;font-size:0.8125rem;">18 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">META</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">25 acc</td>
+            <td class="td-mono">$380.00</td>
+            <td class="td-mono">$430.00</td>
+            <td class="td-positive">+$1,250</td>
+            <td class="td-positive">+13.16%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-03-01</td>
+            <td style="color:#64748b;font-size:0.8125rem;">38 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">SPY</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">50 acc</td>
+            <td class="td-mono">$465.00</td>
+            <td class="td-mono">$490.00</td>
+            <td class="td-positive">+$1,250</td>
+            <td class="td-positive">+5.38%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-02-10</td>
+            <td style="color:#64748b;font-size:0.8125rem;">28 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">BTC</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">0.5 BTC</td>
+            <td class="td-mono">$38,000</td>
+            <td class="td-mono">$52,000</td>
+            <td class="td-positive">+$7,000</td>
+            <td class="td-positive">+36.84%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-01-31</td>
+            <td style="color:#64748b;font-size:0.8125rem;">90 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">MSFT</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">15 acc</td>
+            <td class="td-mono">$360.00</td>
+            <td class="td-mono">$340.00</td>
+            <td class="td-negative">-$300</td>
+            <td class="td-negative">-5.56%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2023-12-15</td>
+            <td style="color:#64748b;font-size:0.8125rem;">12 días</td>
+          </tr>
+          <tr>
+            <td class="td-symbol">GOOGL</td>
+            <td><span class="type-badge">BUY</span></td>
+            <td class="td-mono">10 acc</td>
+            <td class="td-mono">$140.00</td>
+            <td class="td-mono">$168.00</td>
+            <td class="td-positive">+$280</td>
+            <td class="td-positive">+20.00%</td>
+            <td style="color:#94a3b8;font-size:0.8125rem;">2024-03-20</td>
+            <td style="color:#64748b;font-size:0.8125rem;">55 días</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. Risk Metrics -->
+  <div class="section-title-row" style="margin-bottom:1rem;">
+    <h2 style="margin:0;font-size:1.125rem;font-weight:600;color:#e2e8f0;">Métricas de Riesgo</h2>
+  </div>
+  <div class="risk-grid">
+    <div class="risk-card">
+      <div class="r-label">VaR 95%</div>
+      <div class="r-value" style="color:#ef4444;">-$892</div>
+      <div class="r-desc">Pérdida máxima diaria esperada</div>
+    </div>
+    <div class="risk-card">
+      <div class="r-label">Max Drawdown</div>
+      <div class="r-value" style="color:#ef4444;">-8.3%</div>
+      <div class="r-desc">Caída máxima desde el pico</div>
+    </div>
+    <div class="risk-card">
+      <div class="r-label">Volatilidad</div>
+      <div class="r-value" style="color:#f59e0b;">15.2%</div>
+      <div class="r-desc">Volatilidad anualizada</div>
+    </div>
+    <div class="risk-card">
+      <div class="r-label">Beta</div>
+      <div class="r-value" style="color:#e2e8f0;">1.24</div>
+      <div class="r-desc">Sensibilidad vs S&amp;P 500</div>
+    </div>
+  </div>
+
+</main><!-- /main-content -->
+
+<!-- ═══════════════════════════════════════════════
+     5. NUEVA OPERACIÓN MODAL
+════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="new-trade-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card" id="modal-card">
+    <div class="modal-header">
+      <h2 id="modal-title">Nueva Operación</h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="Cerrar modal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <form id="trade-form" onsubmit="submitTrade(event)" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="trade-symbol">Símbolo</label>
+        <input id="trade-symbol" type="text" class="form-input" placeholder="AAPL, BTC, SPY..." required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Dirección</label>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="dir-buy" name="direction" value="BUY" checked>
+            <label class="radio-label buy-label" for="dir-buy">BUY</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="dir-sell" name="direction" value="SELL">
+            <label class="radio-label sell-label" for="dir-sell">SELL</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="trade-qty">Cantidad</label>
+          <input id="trade-qty" type="number" class="form-input" placeholder="10" min="0" step="any" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="trade-price">Precio de Entrada</label>
+          <input id="trade-price" type="number" class="form-input" placeholder="182.50" min="0" step="any" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="trade-sl">Stop Loss</label>
+          <input id="trade-sl" type="number" class="form-input" placeholder="175.00" min="0" step="any">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="trade-tp">Take Profit</label>
+          <input id="trade-tp" type="number" class="form-input" placeholder="200.00" min="0" step="any">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-notes">Notas</label>
+        <textarea id="trade-notes" class="form-textarea" placeholder="Razón de la operación, estrategia utilizada..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn-primary">Ejecutar Orden</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="toast-icon">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  </span>
+  <span id="toast-msg">Orden ejecutada</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ── Init user ──────────────────────────────────────────────
+if (!localStorage.getItem('af_token')) {
+  localStorage.setItem('af_token', 'demo');
+  localStorage.setItem('af_user', JSON.stringify({
+    first_name: 'Demo',
+    last_name: 'User',
+    role: 'analyst'
+  }));
+}
+
+const user = JSON.parse(localStorage.getItem('af_user') || '{}');
+if (user.first_name) {
+  document.getElementById('user-display-name').textContent =
+    user.first_name + ' ' + (user.last_name || '');
+  document.getElementById('user-initials').textContent =
+    (user.first_name[0] + (user.last_name?.[0] || '')).toUpperCase();
+  document.getElementById('user-role-display').textContent = user.role || 'viewer';
+}
+
+// ── Market status ──────────────────────────────────────────
+function updateMarketStatus() {
+  const h = new Date().getUTCHours();
+  const open = h >= 13 && h < 20;
+  document.getElementById('status-dot').style.background = open ? '#10b981' : '#64748b';
+  document.getElementById('market-status-label').textContent =
+    open ? 'MERCADO ABIERTO' : 'CERRADO';
+}
+updateMarketStatus();
+setInterval(updateMarketStatus, 60000);
+
+// ── Sidebar ────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ── Logout ─────────────────────────────────────────────────
+function logout() {
+  localStorage.removeItem('af_token');
+  localStorage.removeItem('af_user');
+  window.location.href = '/views/auth/login.html';
+}
+
+// ── Modal ──────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('new-trade-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('trade-symbol').focus(), 100);
+}
+function closeModal() {
+  document.getElementById('new-trade-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('trade-form').reset();
+}
+
+// Close on backdrop click (not on card click)
+document.getElementById('new-trade-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Close on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+function submitTrade(e) {
+  e.preventDefault();
+  const symbol = document.getElementById('trade-symbol').value.trim().toUpperCase();
+  if (!symbol) { document.getElementById('trade-symbol').focus(); return; }
+  const direction = document.querySelector('input[name="direction"]:checked')?.value || 'BUY';
+  closeModal();
+  showToast('Orden ' + direction + ' ' + symbol + ' ejecutada');
+}
+
+// ── Toast ──────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg || 'Orden ejecutada';
+  toast.classList.add('visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('visible'), 3500);
+}
+
+// ── Equity Curve Chart ─────────────────────────────────────
+function generateEquityCurve() {
+  const points = 180;
+  const startVal = 20000;
+  const endVal   = 24380;
+  const data  = [];
+  const labels = [];
+
+  // Seed random-ish but realistic curve
+  const seed = [
+    0, 80, 200, 150, 350, 280, 500, 430, 700, 650,
+    900, 820, 1100, 980, 1300, 1180, 1500, 1400, 1700,
+    1600, 1900, 1750, 2100, 1980, 2300, 2200, 2500, 2380,
+    2600, 2520, 2700, 2650, 2900, 2800, 3000, 2920, 3150,
+    3050, 3250, 3180, 3400, 3300, 3500, 3420, 3600, 3520,
+    3700, 3640, 3800, 3750, 3900, 3860, 4000, 3950, 4100,
+    4050, 4200, 4150, 4250, 4200, 4300, 4260, 4380
+  ];
+
+  const startDate = new Date('2024-01-01');
+  for (let i = 0; i < points; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    labels.push(d.toLocaleDateString('es-ES', { month: 'short', day: 'numeric' }));
+
+    // Interpolate from seed array
+    const seedIdx = (i / (points - 1)) * (seed.length - 1);
+    const lo = Math.floor(seedIdx);
+    const hi = Math.min(lo + 1, seed.length - 1);
+    const t = seedIdx - lo;
+    const baseGain = seed[lo] * (1 - t) + seed[hi] * t;
+
+    // Add noise
+    const noise = (Math.sin(i * 0.43) * 120) + (Math.sin(i * 1.17) * 60) + (Math.random() * 80 - 40);
+    data.push(Math.round((startVal + baseGain + noise) * 100) / 100);
+  }
+
+  return { data, labels };
+}
+
+function renderEquityCurve() {
+  const ctx = document.getElementById('equity-curve').getContext('2d');
+  const { data, labels } = generateEquityCurve();
+
+  const grad = ctx.createLinearGradient(0, 0, 0, 260);
+  grad.addColorStop(0, 'rgba(37,99,235,0.35)');
+  grad.addColorStop(0.6, 'rgba(37,99,235,0.08)');
+  grad.addColorStop(1, 'rgba(37,99,235,0)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Capital ($)',
+        data,
+        borderColor: '#2563eb',
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#2563eb',
+        fill: true,
+        backgroundColor: grad,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1629',
+          borderColor: '#1e2d4d',
+          borderWidth: 1,
+          titleColor: '#94a3b8',
+          bodyColor: '#e2e8f0',
+          callbacks: {
+            label: ctx => ' $' + ctx.raw.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(30,45,77,0.6)', drawBorder: false },
+          ticks: {
+            color: '#64748b',
+            font: { size: 11 },
+            maxTicksLimit: 9,
+            maxRotation: 0
+          }
+        },
+        y: {
+          position: 'right',
+          grid: { color: 'rgba(30,45,77,0.6)', drawBorder: false },
+          ticks: {
+            color: '#64748b',
+            font: { size: 11, family: "'JetBrains Mono', monospace" },
+            callback: v => '$' + (v / 1000).toFixed(1) + 'k'
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Allocation Doughnut ────────────────────────────────────
+const ALLOC_DATA = [
+  { name: 'AAPL',  pct: 22, color: '#2563eb' },
+  { name: 'NVDA',  pct: 26, color: '#10b981' },
+  { name: 'MSFT',  pct: 17, color: '#7c3aed' },
+  { name: 'TSLA',  pct: 7,  color: '#ef4444' },
+  { name: 'BTC',   pct: 15, color: '#f59e0b' },
+  { name: 'ETH',   pct: 9,  color: '#06b6d4' },
+  { name: 'Cash',  pct: 4,  color: '#1e2d4d' },
+];
+
+function renderAllocChart() {
+  const ctx = document.getElementById('alloc-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ALLOC_DATA.map(d => d.name),
+      datasets: [{
+        data: ALLOC_DATA.map(d => d.pct),
+        backgroundColor: ALLOC_DATA.map(d => d.color),
+        borderColor: '#0f1629',
+        borderWidth: 2,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1629',
+          borderColor: '#1e2d4d',
+          borderWidth: 1,
+          titleColor: '#94a3b8',
+          bodyColor: '#e2e8f0',
+          callbacks: {
+            label: ctx => ' ' + ctx.label + ': ' + ctx.raw + '%'
+          }
+        }
+      }
+    }
+  });
+
+  // Render custom legend
+  const legend = document.getElementById('alloc-legend');
+  legend.innerHTML = ALLOC_DATA.map(d => `
+    <div class="legend-item">
+      <span class="legend-dot" style="background:${d.color};"></span>
+      <span class="legend-name">${d.name}</span>
+      <span class="legend-pct">${d.pct}%</span>
+    </div>
+  `).join('');
+}
+
+// ── Boot ───────────────────────────────────────────────────
+renderEquityCurve();
+renderAllocChart();
+</script>
+</body>
+</html>

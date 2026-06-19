@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis — AlphaForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/css/main.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+.symbol-bar { display:flex; gap:1rem; align-items:center; margin-bottom:1.5rem; background:#141d35; border:1px solid #1e2d4d; border-radius:12px; padding:1rem 1.25rem; }
+.symbol-input { flex:1; padding:0.625rem 1rem; background:#0f1629; border:1px solid #1e2d4d; border-radius:8px; color:#e2e8f0; font-size:1rem; font-family:'JetBrains Mono',monospace; }
+.symbol-input:focus { border-color:#2563eb; outline:none; }
+.btn-analyze { padding:0.625rem 1.5rem; background:#2563eb; color:#fff; border:none; border-radius:8px; font-size:0.9375rem; font-weight:600; cursor:pointer; }
+.btn-analyze:hover { background:#1d4ed8; }
+.symbol-info { display:flex; gap:1.5rem; align-items:center; }
+.sym-name { font-size:1.125rem; font-weight:700; color:#e2e8f0; }
+.sym-price { font-size:1.5rem; font-weight:700; font-family:'JetBrains Mono',monospace; color:#e2e8f0; }
+.sym-change.positive { color:#10b981; } .sym-change.negative { color:#ef4444; }
+.tabs { display:flex; border-bottom:1px solid #1e2d4d; margin-bottom:1.5rem; gap:0; }
+.tab { padding:0.75rem 1.5rem; color:#64748b; font-size:0.9375rem; font-weight:500; cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; }
+.tab:hover { color:#94a3b8; }
+.tab.active { color:#2563eb; border-bottom-color:#2563eb; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+#tv-chart { border:1px solid #1e2d4d; border-radius:12px; overflow:hidden; margin-bottom:1rem; }
+.indicators-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; margin-bottom:1.5rem; }
+.ind-card { background:#141d35; border:1px solid #1e2d4d; border-radius:10px; padding:1rem; }
+.ind-name { font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem; }
+.ind-value { font-size:1.125rem; font-weight:700; color:#e2e8f0; font-family:'JetBrains Mono',monospace; margin-bottom:0.25rem; }
+.ind-signal { font-size:0.8125rem; font-weight:600; }
+.ind-signal.bullish { color:#10b981; } .ind-signal.bearish { color:#ef4444; } .ind-signal.neutral { color:#f59e0b; }
+.sub-charts { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; }
+.sub-chart-card { background:#141d35; border:1px solid #1e2d4d; border-radius:12px; padding:1rem; }
+.sub-chart-title { font-size:0.8125rem; color:#94a3b8; font-weight:600; margin-bottom:0.75rem; }
+.fund-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; margin-bottom:1.5rem; }
+.fund-card { background:#141d35; border:1px solid #1e2d4d; border-radius:12px; padding:1.25rem; }
+.fund-card h4 { margin:0 0 1rem; font-size:0.9375rem; color:#e2e8f0; }
+.metric-row { display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0; border-bottom:1px solid rgba(30,45,77,0.5); }
+.metric-row:last-child { border-bottom:none; }
+.metric-name { font-size:0.8125rem; color:#94a3b8; }
+.metric-val { font-size:0.9375rem; font-weight:600; font-family:'JetBrains Mono',monospace; color:#e2e8f0; }
+.metric-val.good { color:#10b981; } .metric-val.bad { color:#ef4444; } .metric-val.warn { color:#f59e0b; }
+.vs-bar-wrap { display:flex; align-items:center; gap:0.5rem; }
+.vs-bar { width:100px; height:6px; background:#1e2d4d; border-radius:3px; position:relative; }
+.vs-fill { height:100%; border-radius:3px; background:#2563eb; }
+.sector-avg-dot { width:8px; height:8px; background:#64748b; border-radius:50%; position:absolute; top:-1px; }
+.sent-gauge-wrap { display:flex; flex-direction:column; align-items:center; padding:1.5rem; }
+.platform-bars { display:flex; flex-direction:column; gap:0.75rem; }
+.platform-item { display:flex; align-items:center; gap:0.75rem; }
+.platform-name { width:80px; font-size:0.8125rem; color:#94a3b8; }
+.sent-bar { flex:1; height:8px; background:#1e2d4d; border-radius:4px; overflow:hidden; }
+.sent-bar-fill { height:100%; border-radius:4px; }
+.sent-bar-fill.positive { background:#10b981; }
+.sent-bar-fill.negative { background:#ef4444; }
+.sent-bar-fill.neutral { background:#f59e0b; }
+.sent-score { width:40px; text-align:right; font-size:0.8125rem; font-family:'JetBrains Mono',monospace; font-weight:600; }
+.report-score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.5rem; }
+.report-score-card { background:#141d35; border:1px solid #1e2d4d; border-radius:12px; padding:1.25rem; text-align:center; }
+.report-score-label { font-size:0.75rem; color:#64748b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem; }
+.report-score-value { font-size:2rem; font-weight:800; font-family:'JetBrains Mono',monospace; color:#e2e8f0; }
+.report-score-bar { height:4px; background:#1e2d4d; border-radius:2px; margin-top:0.625rem; }
+.report-score-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,#2563eb,#10b981); }
+.final-signal-card { background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:12px; padding:2rem; text-align:center; margin-bottom:1.5rem; }
+.final-signal-big { font-size:3rem; font-weight:800; color:#10b981; letter-spacing:0.1em; margin-bottom:0.5rem; }
+.final-signal-conf { font-size:1rem; color:#94a3b8; margin-bottom:1rem; }
+.pt-row { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; }
+.pt-card { background:#141d35; border:1px solid #1e2d4d; border-radius:10px; padding:1rem; text-align:center; }
+.pt-label { font-size:0.75rem; color:#64748b; text-transform:uppercase; margin-bottom:0.25rem; }
+.pt-value { font-size:1rem; font-weight:600; font-family:'JetBrains Mono',monospace; color:#e2e8f0; }
+.pt-value.positive { color:#10b981; } .pt-value.negative { color:#ef4444; }
+.factors-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+.factor-box { background:#141d35; border:1px solid #1e2d4d; border-radius:10px; padding:1rem; }
+.factor-box h4 { margin:0 0 0.75rem; font-size:0.8125rem; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; }
+.factor-box li { font-size:0.875rem; color:#e2e8f0; padding:0.25rem 0; list-style:none; border-bottom:1px solid rgba(30,45,77,0.4); }
+.factor-box li:last-child { border-bottom:none; }
+.factor-box li.risk { color:#ef4444; }
+@media (max-width:1024px) { .indicators-grid { grid-template-columns:repeat(2,1fr); } .fund-grid { grid-template-columns:1fr; } .report-score-grid { grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="#2563eb" opacity="0.2" stroke="#2563eb" stroke-width="1.5"/><text x="16" y="21" text-anchor="middle" fill="#2563eb" font-size="11" font-weight="700" font-family="Inter">AF</text></svg>
+    <span class="brand-text">AlphaForge</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</a>
+    <a href="signals.html" class="nav-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Señales IA</a>
+    <a href="portfolio.html" class="nav-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Portfolio</a>
+    <a href="analysis.html" class="nav-item active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Análisis</a>
+    <a href="backtesting.html" class="nav-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>Backtesting</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info"><div class="user-avatar" id="user-initials">U</div><div class="user-details"><div class="user-name" id="user-name">Usuario</div><div class="user-role">viewer</div></div></div>
+    <button onclick="logout()" class="logout-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+  </div>
+</aside>
+<header class="topbar">
+  <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('collapsed')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div style="font-size:1.125rem;font-weight:600;color:#e2e8f0;">Motor de Análisis</div>
+</header>
+<main class="main-content">
+  <!-- Symbol Search -->
+  <div class="symbol-bar">
+    <input type="text" class="symbol-input" id="symbol-input" placeholder="Símbolo: AAPL, NVDA, BTC..." value="AAPL">
+    <button class="btn-analyze" onclick="analyzeSymbol()">Analizar</button>
+    <div class="symbol-info">
+      <div>
+        <div class="sym-name" id="sym-name">Apple Inc.</div>
+        <div style="font-size:0.8125rem;color:#64748b;">NASDAQ · Stock · Tecnología</div>
+      </div>
+      <div>
+        <div class="sym-price" id="sym-price">$182.50</div>
+        <div class="sym-change positive" id="sym-change">▲ +$2.30 (+1.27%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('technical', this)">Técnico</div>
+    <div class="tab" onclick="switchTab('fundamental', this)">Fundamental</div>
+    <div class="tab" onclick="switchTab('sentiment', this)">Sentimiento</div>
+    <div class="tab" onclick="switchTab('report', this)">Reporte Completo</div>
+  </div>
+
+  <!-- TECHNICAL TAB -->
+  <div id="tab-technical" class="tab-content active">
+    <div id="tv-chart" style="height:420px;"></div>
+    <div class="indicators-grid">
+      <div class="ind-card"><div class="ind-name">RSI (14)</div><div class="ind-value">38.5</div><div class="ind-signal neutral">→ Neutral-Alcista</div></div>
+      <div class="ind-card"><div class="ind-name">MACD (12,26,9)</div><div class="ind-value">+1.24</div><div class="ind-signal bullish">▲ Cruce Alcista</div></div>
+      <div class="ind-card"><div class="ind-name">EMA 50 / 200</div><div class="ind-value">$178 / $165</div><div class="ind-signal bullish">▲ Golden Cross</div></div>
+      <div class="ind-card"><div class="ind-name">Bollinger Bands</div><div class="ind-value">%B: 0.42</div><div class="ind-signal neutral">→ Zona Media</div></div>
+      <div class="ind-card"><div class="ind-name">ATR (14)</div><div class="ind-value">$3.84</div><div class="ind-signal neutral">→ Vol. Normal</div></div>
+      <div class="ind-card"><div class="ind-name">Ichimoku Cloud</div><div class="ind-value">Bullish</div><div class="ind-signal bullish">▲ Sobre Nube</div></div>
+      <div class="ind-card"><div class="ind-name">Volume Profile</div><div class="ind-value">POC: $180</div><div class="ind-signal bullish">▲ Sobre POC</div></div>
+      <div class="ind-card"><div class="ind-name">Fibonacci</div><div class="ind-value">61.8%: $178</div><div class="ind-signal bullish">▲ Soporte Sólido</div></div>
+    </div>
+    <div class="sub-charts">
+      <div class="sub-chart-card">
+        <div class="sub-chart-title">RSI (14) — Zona Oversold &lt;30 / Overbought &gt;70</div>
+        <canvas id="rsi-chart" height="120"></canvas>
+      </div>
+      <div class="sub-chart-card">
+        <div class="sub-chart-title">MACD (12,26) — Histograma</div>
+        <canvas id="macd-chart" height="120"></canvas>
+      </div>
+    </div>
+    <div class="af-card" style="margin-bottom:1rem;">
+      <h4 style="margin:0 0 1rem;color:#e2e8f0;font-size:0.9375rem;">Niveles Clave de Soporte y Resistencia</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Soportes</div>
+          <div style="display:flex;flex-direction:column;gap:0.375rem;">
+            <div style="display:flex;justify-content:space-between;padding:0.4rem 0.75rem;background:#0f1629;border-radius:6px;border-left:3px solid #10b981;"><span style="color:#94a3b8;font-size:0.875rem;">S1 (fuerte)</span><span style="font-family:'JetBrains Mono',monospace;color:#10b981;">$178.20</span></div>
+            <div style="display:flex;justify-content:space-between;padding:0.4rem 0.75rem;background:#0f1629;border-radius:6px;border-left:3px solid rgba(16,185,129,0.5);"><span style="color:#94a3b8;font-size:0.875rem;">S2 (EMA200)</span><span style="font-family:'JetBrains Mono',monospace;color:#94a3b8;">$165.40</span></div>
+            <div style="display:flex;justify-content:space-between;padding:0.4rem 0.75rem;background:#0f1629;border-radius:6px;border-left:3px solid rgba(16,185,129,0.3);"><span style="color:#94a3b8;font-size:0.875rem;">S3 (Fib 50%)</span><span style="font-family:'JetBrains Mono',monospace;color:#94a3b8;">$158.00</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem;">Resistencias</div>
+          <div style="display:flex;flex-direction:column;gap:0.375rem;">
+            <div style="display:flex;justify-content:space-between;padding:0.4rem 0.75rem;background:#0f1629;border-radius:6px;border-left:3px solid #ef4444;"><span style="color:#94a3b8;font-size:0.875rem;">R1 (fuerte)</span><span style="font-family:'JetBrains Mono',monospace;color:#ef4444;">$188.50</span></div>
+            <div style="display:flex;justify-content:space-between;padding:0.4rem 0.75rem;background:#0f1629;border-radius:6px;border-left:3px solid rgba(239,68,68,0.5);"><span style="color:#94a3b8;font-size:0.875rem;">R2 (máx 52s)</span><span style="font-family:'JetBrains Mono',monospace;color:#94a3b8;">$198.20</span></div>
+            <div style="display:flex;justify-content:space-between;padding:0.4rem 0.75rem;background:#0f1629;border-radius:6px;border-left:3px solid rgba(239,68,68,0.3);"><span style="color:#94a3b8;font-size:0.875rem;">R3 (Fib 161.8%)</span><span style="font-family:'JetBrains Mono',monospace;color:#94a3b8;">$214.00</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FUNDAMENTAL TAB -->
+  <div id="tab-fundamental" class="tab-content">
+    <div class="fund-grid">
+      <div class="fund-card">
+        <h4>Valoración</h4>
+        <div class="metric-row"><span class="metric-name">PE Ratio</span><div class="vs-bar-wrap"><div class="vs-bar"><div class="vs-fill" style="width:60%;"></div><div class="sector-avg-dot" style="left:65%;"></div></div><span class="metric-val warn">27.4x</span></div></div>
+        <div class="metric-row"><span class="metric-name">PB Ratio</span><div class="vs-bar-wrap"><div class="vs-bar"><div class="vs-fill" style="width:75%;"></div><div class="sector-avg-dot" style="left:70%;"></div></div><span class="metric-val">8.2x</span></div></div>
+        <div class="metric-row"><span class="metric-name">EV/EBITDA</span><div class="vs-bar-wrap"><div class="vs-bar"><div class="vs-fill" style="width:55%;"></div><div class="sector-avg-dot" style="left:60%;"></div></div><span class="metric-val">19.8x</span></div></div>
+        <div class="metric-row"><span class="metric-name">PS Ratio</span><span class="metric-val">7.1x</span></div>
+        <div class="metric-row"><span class="metric-name">DCF Valor Justo</span><span class="metric-val good">$210.00</span></div>
+        <div style="margin-top:0.75rem;padding:0.625rem;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-size:0.8125rem;color:#10b981;">↑ DCF sugiere subvaluación del 15% respecto al precio actual</div>
+      </div>
+      <div class="fund-card">
+        <h4>Rentabilidad</h4>
+        <div class="metric-row"><span class="metric-name">Margen Bruto</span><span class="metric-val good">43.8%</span></div>
+        <div class="metric-row"><span class="metric-name">Margen Operativo</span><span class="metric-val good">30.1%</span></div>
+        <div class="metric-row"><span class="metric-name">Margen Neto</span><span class="metric-val good">25.3%</span></div>
+        <div class="metric-row"><span class="metric-name">ROE</span><span class="metric-val good">147%</span></div>
+        <div class="metric-row"><span class="metric-name">ROA</span><span class="metric-val good">22.4%</span></div>
+        <div class="metric-row"><span class="metric-name">ROIC</span><span class="metric-val good">58.1%</span></div>
+      </div>
+      <div class="fund-card">
+        <h4>Salud Financiera</h4>
+        <div class="metric-row"><span class="metric-name">Deuda/Capital</span><span class="metric-val warn">1.96x</span></div>
+        <div class="metric-row"><span class="metric-name">Current Ratio</span><span class="metric-val good">0.99x</span></div>
+        <div class="metric-row"><span class="metric-name">FCF (anual)</span><span class="metric-val good">$99.6B</span></div>
+        <div class="metric-row"><span class="metric-name">Cash &amp; Equiv.</span><span class="metric-val good">$67.2B</span></div>
+        <div class="metric-row"><span class="metric-name">Altman Z-Score</span><span class="metric-val good">6.84</span></div>
+        <div style="margin-top:0.75rem;padding:0.625rem;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:8px;font-size:0.8125rem;color:#10b981;">Z-Score 6.84 — Zona Segura (&gt;2.99 = sin riesgo quiebra)</div>
+      </div>
+      <div class="fund-card">
+        <h4>Crecimiento YoY</h4>
+        <canvas id="growth-chart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- SENTIMENT TAB -->
+  <div id="tab-sentiment" class="tab-content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+      <div class="af-card">
+        <h4 style="margin:0 0 1rem;color:#e2e8f0;font-size:0.9375rem;">Sentimiento Compuesto</h4>
+        <div class="sent-gauge-wrap">
+          <canvas id="sentiment-gauge" width="200" height="120"></canvas>
+          <div style="font-size:2rem;font-weight:800;color:#10b981;font-family:'JetBrains Mono',monospace;">71</div>
+          <div style="font-size:0.875rem;color:#10b981;font-weight:600;">Positivo</div>
+          <div style="font-size:0.8125rem;color:#64748b;margin-top:0.25rem;">Mejorando (+8 últimas 48h)</div>
+        </div>
+      </div>
+      <div class="af-card">
+        <h4 style="margin:0 0 1rem;color:#e2e8f0;font-size:0.9375rem;">Desglose por Plataforma</h4>
+        <div class="platform-bars">
+          <div class="platform-item"><span class="platform-name">Noticias</span><div class="sent-bar"><div class="sent-bar-fill positive" style="width:78%;"></div></div><span class="sent-score positive">+0.78</span></div>
+          <div class="platform-item"><span class="platform-name">StockTwits</span><div class="sent-bar"><div class="sent-bar-fill positive" style="width:72%;"></div></div><span class="sent-score positive">+0.72</span></div>
+          <div class="platform-item"><span class="platform-name">Reddit</span><div class="sent-bar"><div class="sent-bar-fill positive" style="width:65%;"></div></div><span class="sent-score positive">+0.65</span></div>
+          <div class="platform-item"><span class="platform-name">Twitter/X</span><div class="sent-bar"><div class="sent-bar-fill positive" style="width:58%;"></div></div><span class="sent-score positive">+0.58</span></div>
+          <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #1e2d4d;">
+            <div style="display:flex;justify-content:space-between;font-size:0.8125rem;color:#94a3b8;margin-bottom:0.375rem;"><span>Ratio Bull/Bear:</span><span style="font-family:'JetBrains Mono',monospace;color:#10b981;">2.4:1</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8125rem;color:#94a3b8;margin-bottom:0.375rem;"><span>Volumen menciones:</span><span style="font-family:'JetBrains Mono',monospace;color:#e2e8f0;">12,840</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:0.8125rem;color:#94a3b8;"><span>Últimas 48h:</span><span style="font-family:'JetBrains Mono',monospace;color:#10b981;">↑ Mejorando</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="af-card" style="margin-bottom:1.5rem;">
+      <h4 style="margin:0 0 1rem;color:#e2e8f0;font-size:0.9375rem;">Tendencia de Sentimiento (7 días)</h4>
+      <canvas id="sentiment-trend" height="100"></canvas>
+    </div>
+    <div class="af-card">
+      <h4 style="margin:0 0 1rem;color:#e2e8f0;font-size:0.9375rem;">Noticias Recientes</h4>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div style="padding:0.875rem;background:#0f1629;border-radius:8px;border-left:3px solid #10b981;"><div style="font-size:0.9375rem;font-weight:600;color:#e2e8f0;">Apple supera estimaciones en iPhone China con ventas récord en Q1</div><div style="display:flex;gap:0.75rem;margin-top:0.375rem;font-size:0.8125rem;color:#64748b;"><span>Reuters</span><span>•</span><span>Hace 3h</span><span class="ind-signal bullish">▲ Positivo (0.82)</span></div></div>
+        <div style="padding:0.875rem;background:#0f1629;border-radius:8px;border-left:3px solid #10b981;"><div style="font-size:0.9375rem;font-weight:600;color:#e2e8f0;">Analysts upgrades Apple to Buy citing AI services monetization opportunity</div><div style="display:flex;gap:0.75rem;margin-top:0.375rem;font-size:0.8125rem;color:#64748b;"><span>Bloomberg</span><span>•</span><span>Hace 6h</span><span class="ind-signal bullish">▲ Positivo (0.74)</span></div></div>
+        <div style="padding:0.875rem;background:#0f1629;border-radius:8px;border-left:3px solid #ef4444;"><div style="font-size:0.9375rem;font-weight:600;color:#e2e8f0;">DOJ antitrust investigation widens scope on App Store practices</div><div style="display:flex;gap:0.75rem;margin-top:0.375rem;font-size:0.8125rem;color:#64748b;"><span>WSJ</span><span>•</span><span>Hace 12h</span><span class="ind-signal bearish">▼ Negativo (-0.61)</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL REPORT TAB -->
+  <div id="tab-report" class="tab-content">
+    <div class="report-score-grid">
+      <div class="report-score-card"><div class="report-score-label">Score Técnico</div><div class="report-score-value" style="color:#2563eb;">82</div><div class="report-score-bar"><div class="report-score-fill" style="width:82%;"></div></div></div>
+      <div class="report-score-card"><div class="report-score-label">Score Fundamental</div><div class="report-score-value" style="color:#7c3aed;">78</div><div class="report-score-bar"><div class="report-score-fill" style="width:78%;background:linear-gradient(90deg,#7c3aed,#a78bfa);"></div></div></div>
+      <div class="report-score-card"><div class="report-score-label">Score Sentimiento</div><div class="report-score-value" style="color:#10b981;">71</div><div class="report-score-bar"><div class="report-score-fill" style="width:71%;background:linear-gradient(90deg,#10b981,#34d399);"></div></div></div>
+      <div class="report-score-card"><div class="report-score-label">Score Compuesto</div><div class="report-score-value">80</div><div class="report-score-bar"><div class="report-score-fill" style="width:80%;"></div></div></div>
+    </div>
+    <div class="final-signal-card">
+      <div class="final-signal-big">BUY</div>
+      <div class="final-signal-conf">84% confianza · Fuerza: Fuerte · Horizonte: Corto Plazo</div>
+      <p style="color:#94a3b8;font-size:0.9375rem;line-height:1.7;max-width:700px;margin:0 auto;">RSI(14) en 38.5 indica zona neutral-alcista con potencial recuperación. MACD muestra cruce alcista confirmado con histograma positivo creciente. Golden Cross EMA50/EMA200 vigente — señal de tendencia alcista estructural. Ichimoku Cloud en configuración bullish. Fundamentalmente, el DCF establece valor justo en $210 (15% de margen de seguridad). PE 27x razonable para empresa con crecimiento de FCF +12% YoY. Altman Z-Score 6.84 indica máxima solidez financiera. Sentimiento positivo (+0.71) impulsado por resultados Q1 que superaron estimaciones en 18%. Combinación de señales técnicas y fundamentales converge en señal BUY con alta convicción.</p>
+    </div>
+    <div class="pt-row" style="margin-bottom:1.5rem;">
+      <div class="pt-card"><div class="pt-label">Precio Entrada</div><div class="pt-value">$182.50</div></div>
+      <div class="pt-card"><div class="pt-label">Objetivo 1</div><div class="pt-value positive">$198.00</div></div>
+      <div class="pt-card"><div class="pt-label">Objetivo 2</div><div class="pt-value positive">$210.00</div></div>
+      <div class="pt-card"><div class="pt-label">Stop Loss</div><div class="pt-value negative">$174.00</div></div>
+    </div>
+    <div class="factors-row">
+      <div class="factor-box">
+        <h4>Factores Clave</h4>
+        <ul>
+          <li>✓ Golden Cross EMA50/200 activo — tendencia alcista estructural</li>
+          <li>✓ MACD cruce alcista con histograma positivo y creciente</li>
+          <li>✓ DCF fair value $210 implica 15% de margen de seguridad</li>
+          <li>✓ FCF yield 4.1% — generación de caja excepcional</li>
+          <li>✓ EPS Q1 superó estimaciones en 18% — momentum fundamental</li>
+          <li>✓ Sentimiento compuesto +0.71 en mejoría sostenida</li>
+        </ul>
+      </div>
+      <div class="factor-box">
+        <h4>Factores de Riesgo</h4>
+        <ul>
+          <li class="risk">⚠ Incertidumbre macro: decisión Fed tasas jueves</li>
+          <li class="risk">⚠ Saturación mercado iPhone en China — competencia BYD</li>
+          <li class="risk">⚠ PE histórico alto en contexto de tasas elevadas</li>
+          <li class="risk">⚠ Resistencia técnica fuerte en $188.50</li>
+        </ul>
+      </div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.2);border-radius:10px;font-size:0.8125rem;color:#94a3b8;line-height:1.6;">
+      <strong style="color:#f59e0b;">⚠ Aviso Legal:</strong> Las señales generadas por AlphaForge son basadas en análisis algorítmico de datos históricos y no constituyen asesoramiento financiero. Toda inversión conlleva riesgo de pérdida de capital. Consulte a un asesor financiero certificado antes de invertir.
+    </div>
+  </div>
+</main>
+<script>
+if (!localStorage.getItem('af_token')) window.location.href = '/views/auth/login.html';
+function logout() { localStorage.removeItem('af_token'); window.location.href = '/views/auth/login.html'; }
+const u = JSON.parse(localStorage.getItem('af_user')||'{}');
+if (u.first_name) { document.getElementById('user-name').textContent = u.first_name; document.getElementById('user-initials').textContent = u.first_name[0]; }
+
+function switchTab(tabId, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tabId).classList.add('active');
+}
+
+function analyzeSymbol() {
+  const sym = document.getElementById('symbol-input').value.trim().toUpperCase();
+  document.getElementById('sym-name').textContent = sym + ' — Cargando...';
+  setTimeout(() => {
+    document.getElementById('sym-name').textContent = sym;
+    document.getElementById('sym-price').textContent = '$' + (Math.random()*500+50).toFixed(2);
+  }, 800);
+}
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = '#1e2d4d';
+Chart.defaults.font.family = 'Inter, sans-serif';
+
+// TradingView Lightweight Chart
+const tvContainer = document.getElementById('tv-chart');
+const chart = LightweightCharts.createChart(tvContainer, {
+  width: tvContainer.offsetWidth, height: 420,
+  layout: { background: { color: '#0f1629' }, textColor: '#94a3b8' },
+  grid: { vertLines: { color: '#1e2d4d' }, horzLines: { color: '#1e2d4d' } },
+  crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+  rightPriceScale: { borderColor: '#1e2d4d' },
+  timeScale: { borderColor: '#1e2d4d', timeVisible: true }
+});
+const cs = chart.addCandlestickSeries({ upColor:'#10b981', downColor:'#ef4444', borderUpColor:'#10b981', borderDownColor:'#ef4444', wickUpColor:'#10b981', wickDownColor:'#ef4444' });
+// Demo AAPL candle data
+const candles = [];
+let close = 165, t = new Date('2026-01-02');
+for (let i=0; i<120; i++) {
+  const change = (Math.random()-0.47)*4;
+  const open = close;
+  close = Math.max(140, open + change);
+  const high = Math.max(open, close) + Math.random()*2;
+  const low = Math.min(open, close) - Math.random()*2;
+  candles.push({ time: t.toISOString().split('T')[0], open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2), close: +close.toFixed(2) });
+  t.setDate(t.getDate() + 1);
+  if (t.getDay() === 0) t.setDate(t.getDate() + 1);
+  if (t.getDay() === 6) t.setDate(t.getDate() + 2);
+}
+cs.setData(candles);
+const ema50Series = chart.addLineSeries({ color: '#2563eb', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: false });
+const ema50Data = candles.map((c,i,arr) => ({ time: c.time, value: arr.slice(Math.max(0,i-49),i+1).reduce((s,x)=>s+x.close,0)/Math.min(50,i+1) }));
+ema50Series.setData(ema50Data);
+window.addEventListener('resize', () => chart.applyOptions({ width: tvContainer.offsetWidth }));
+
+// RSI chart
+const rsiLabels = candles.slice(-30).map(c=>c.time.slice(5));
+const rsiData = candles.slice(-30).map((_,i)=>35+i*0.8+(Math.random()-0.5)*8);
+rsiData[rsiData.length-1] = 38.5;
+new Chart(document.getElementById('rsi-chart').getContext('2d'), {
+  type:'line', data:{ labels:rsiLabels, datasets:[
+    { data:rsiData, borderColor:'#7c3aed', borderWidth:2, pointRadius:0, fill:false },
+    { data:Array(30).fill(70), borderColor:'rgba(239,68,68,0.4)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false },
+    { data:Array(30).fill(30), borderColor:'rgba(16,185,129,0.4)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false }
+  ]},
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{min:0,max:100,ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(30,45,77,0.5)'}} } }
+});
+
+// MACD
+const macdHist = rsiLabels.map(()=>(Math.random()-0.45)*2);
+macdHist[macdHist.length-1] = 0.82;
+new Chart(document.getElementById('macd-chart').getContext('2d'), {
+  type:'bar', data:{ labels:rsiLabels, datasets:[{ data:macdHist, backgroundColor:macdHist.map(v=>v>=0?'rgba(16,185,129,0.6)':'rgba(239,68,68,0.6)'), borderRadius:2 }]},
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{display:false}, y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'rgba(30,45,77,0.5)'}} } }
+});
+
+// Growth chart
+new Chart(document.getElementById('growth-chart').getContext('2d'), {
+  type:'bar', data:{
+    labels:['Q1\'25','Q2\'25','Q3\'25','Q4\'25'],
+    datasets:[
+      { label:'Revenue Growth', data:[8.1,9.4,11.2,12.8], backgroundColor:'rgba(37,99,235,0.7)', borderRadius:4 },
+      { label:'EPS Growth', data:[11.2,14.8,16.1,18.4], backgroundColor:'rgba(16,185,129,0.7)', borderRadius:4 }
+    ]
+  },
+  options:{ responsive:true, plugins:{ legend:{ labels:{ color:'#94a3b8', font:{size:11} } } }, scales:{ x:{ ticks:{color:'#64748b'}, grid:{display:false} }, y:{ ticks:{color:'#64748b',callback:(v)=>v+'%'}, grid:{color:'rgba(30,45,77,0.5)'} } } }
+});
+
+// Sentiment gauge
+const sgCtx = document.getElementById('sentiment-gauge').getContext('2d');
+new Chart(sgCtx, {
+  type:'doughnut', data:{ datasets:[{ data:[71,29], backgroundColor:['#10b981','#1e2d4d'], borderWidth:0 }]},
+  options:{ circumference:180, rotation:-90, responsive:false, plugins:{legend:{display:false}}, cutout:'80%' }
+});
+
+// Sentiment trend
+const trendDays = ['Jun 13','Jun 14','Jun 15','Jun 16','Jun 17','Jun 18','Jun 19'];
+const trendScores = [48,52,55,58,63,67,71];
+new Chart(document.getElementById('sentiment-trend').getContext('2d'), {
+  type:'line', data:{ labels:trendDays, datasets:[{ data:trendScores, borderColor:'#10b981', borderWidth:2, pointRadius:3, pointBackgroundColor:'#10b981', fill:true, backgroundColor:'rgba(16,185,129,0.08)' }]},
+  options:{ responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#64748b',font:{size:11}},grid:{display:false}}, y:{min:0,max:100,ticks:{color:'#64748b',font:{size:11}},grid:{color:'rgba(30,45,77,0.5)'}} } }
+});
+</script>
+</body>
+</html>
