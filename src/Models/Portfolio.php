@@ -146,12 +146,14 @@ class Portfolio
 
     public function getSnapshots(string $portfolioId, int $days = 90): array
     {
+        // PostgreSQL does not accept a bound parameter inside an INTERVAL literal.
+        // $days is typed int, so interpolation is safe against SQL injection.
         return $this->db->fetchAll(
-            'SELECT * FROM portfolio_snapshots
+            "SELECT * FROM portfolio_snapshots
              WHERE portfolio_id = :pid
-               AND snapshot_date >= NOW() - INTERVAL :days_expr
-             ORDER BY snapshot_date ASC',
-            [':pid' => $portfolioId, ':days_expr' => "{$days} days"]
+               AND snapshot_date >= NOW() - INTERVAL '{$days} days'
+             ORDER BY snapshot_date ASC",
+            [':pid' => $portfolioId]
         );
     }
 

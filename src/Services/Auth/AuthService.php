@@ -167,6 +167,11 @@ final class AuthService
             throw new \RuntimeException('Invalid email or password.');
         }
 
+        // Reject deactivated accounts before any expensive operations.
+        if (!(bool) $fullUser['is_active']) {
+            throw new \RuntimeException('This account has been deactivated. Please contact support.');
+        }
+
         // Check account lock before password verification.
         if ($this->userModel->isLocked($fullUser)) {
             $this->audit($fullUser['id'], 'user.login.blocked', 'users', $fullUser['id'], null, [
@@ -180,7 +185,10 @@ final class AuthService
         if (!$this->passwords->verify($password, (string) $fullUser['password_hash'])) {
             $this->userModel->incrementFailedLogins((string) $fullUser['id']);
 
-            $attempts = (int) $fullUser['failed_login_attempts'] + 1;
+            // Re-fetch the DB-authoritative count to avoid race conditions where
+            // concurrent failed logins read a stale in-memory value.
+            $fresh    = $this->userModel->findById((string) $fullUser['id']);
+            $attempts = (int) ($fresh['failed_login_attempts'] ?? 0);
 
             if ($attempts >= self::MAX_FAILED_ATTEMPTS) {
                 $this->userModel->lockAccount((string) $fullUser['id'], self::LOCKOUT_MINUTES);
@@ -193,11 +201,6 @@ final class AuthService
             ]);
 
             throw new \RuntimeException('Invalid email or password.');
-        }
-
-        // Reject deactivated accounts.
-        if (!(bool) $fullUser['is_active']) {
-            throw new \RuntimeException('This account has been deactivated. Please contact support.');
         }
 
         // Fetch user's primary role.

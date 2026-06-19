@@ -65,7 +65,7 @@ final class PortfolioController
             $this->success($portfolios, 'Portfolios retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['user_id' => $userId]);
-            $this->error('Failed to retrieve portfolios: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve portfolios', 500);
         }
     }
 
@@ -117,7 +117,7 @@ final class PortfolioController
             $this->success($portfolio, 'Portfolio created.', 201);
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['user_id' => $userId]);
-            $this->error('Failed to create portfolio: ' . $e->getMessage(), 500);
+            $this->error('Failed to create portfolio', 500);
         }
     }
 
@@ -156,7 +156,7 @@ final class PortfolioController
             $this->success($portfolio, 'Portfolio retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to retrieve portfolio: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve portfolio', 500);
         }
     }
 
@@ -196,7 +196,7 @@ final class PortfolioController
             $this->success($updated, 'Portfolio updated.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to update portfolio: ' . $e->getMessage(), 500);
+            $this->error('Failed to update portfolio', 500);
         }
     }
 
@@ -213,7 +213,7 @@ final class PortfolioController
             exit;
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to delete portfolio: ' . $e->getMessage(), 500);
+            $this->error('Failed to delete portfolio', 500);
         }
     }
 
@@ -266,7 +266,7 @@ final class PortfolioController
             $this->success($positions, 'Positions retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to retrieve positions: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve positions', 500);
         }
     }
 
@@ -381,7 +381,7 @@ final class PortfolioController
             ], 'Performance retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to retrieve performance: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve performance', 500);
         }
     }
 
@@ -470,7 +470,7 @@ final class PortfolioController
             $this->success($metrics, 'Risk metrics calculated.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to retrieve risk metrics: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve risk metrics', 500);
         }
     }
 
@@ -674,7 +674,7 @@ final class PortfolioController
         } catch (\Throwable $e) {
             $this->db->rollback();
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Trade execution failed: ' . $e->getMessage(), 500);
+            $this->error('Trade execution failed', 500);
         }
     }
 
@@ -762,7 +762,7 @@ final class PortfolioController
             ], 'Trades retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['portfolio_id' => $portfolio['id']]);
-            $this->error('Failed to retrieve trades: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve trades', 500);
         }
     }
 

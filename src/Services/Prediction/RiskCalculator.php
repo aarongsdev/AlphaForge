@@ -15,7 +15,9 @@ class RiskCalculator
         $sortedReturns = $returns;
         sort($sortedReturns);
 
-        $index = (int) floor((1 - $confidence) * count($sortedReturns));
+        // floor((1-conf)*n) gives the 1-indexed position; subtract 1 for 0-indexed.
+        // Clamped to 0 to handle edge cases where n is very small.
+        $index = max(0, (int) floor((1 - $confidence) * count($sortedReturns)) - 1);
 
         return abs($sortedReturns[$index]);
     }
@@ -29,9 +31,9 @@ class RiskCalculator
         $sortedReturns = $returns;
         sort($sortedReturns);
 
-        $cutoffIndex = (int) floor((1 - $confidence) * count($sortedReturns));
+        $cutoffIndex = max(1, (int) floor((1 - $confidence) * count($sortedReturns)));
 
-        $tailValues = array_slice($sortedReturns, 0, $cutoffIndex + 1);
+        $tailValues = array_slice($sortedReturns, 0, $cutoffIndex);
 
         if (empty($tailValues)) {
             return 0.0;
@@ -234,6 +236,6 @@ class RiskCalculator
             $squaredSum += ($value - $mean) ** 2;
         }
 
-        return sqrt($squaredSum / $count);
+        return sqrt($squaredSum / ($count - 1));
     }
 }

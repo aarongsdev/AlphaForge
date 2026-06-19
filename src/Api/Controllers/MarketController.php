@@ -49,7 +49,7 @@ final class MarketController
             $this->success($quote, 'Quote retrieved successfully.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['symbol' => $symbol]);
-            $this->error('Failed to retrieve quote: ' . $e->getMessage(), 502);
+            $this->error('Failed to retrieve quote, 502);
         }
     }
 
@@ -95,7 +95,7 @@ final class MarketController
             ], 'Historical data retrieved successfully.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['symbol' => $symbol, 'interval' => $interval]);
-            $this->error('Failed to retrieve historical data: ' . $e->getMessage(), 502);
+            $this->error('Failed to retrieve historical data, 502);
         }
     }
 
@@ -126,7 +126,7 @@ final class MarketController
             $this->success(['results' => $results, 'count' => count($results)], 'Search completed.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['q' => $q, 'type' => $type]);
-            $this->error('Search failed: ' . $e->getMessage(), 502);
+            $this->error('Search failed, 502);
         }
     }
 
@@ -142,7 +142,7 @@ final class MarketController
             $this->success($overview, 'Market overview retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e);
-            $this->error('Failed to retrieve market overview: ' . $e->getMessage(), 502);
+            $this->error('Failed to retrieve market overview, 502);
         }
     }
 
@@ -207,7 +207,7 @@ final class MarketController
             ], 'Market movers retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e);
-            $this->error('Failed to retrieve market movers: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve market movers', 500);
         }
     }
 
@@ -264,7 +264,7 @@ final class MarketController
             ], 'Calendar retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e);
-            $this->error('Failed to retrieve calendar: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve calendar', 500);
         }
     }
 

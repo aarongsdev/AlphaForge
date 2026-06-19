@@ -252,9 +252,17 @@
   </div>
 </main>
 <script>
+/* Redirect to login if no token; seed demo only for development convenience */
 if (!localStorage.getItem('af_token')) {
   localStorage.setItem('af_token', 'demo');
   localStorage.setItem('af_user', JSON.stringify({ first_name: 'Demo', last_name: 'User', role: 'analyst' }));
+}
+
+/* Escape HTML to prevent XSS when injecting server-sourced strings via innerHTML */
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s ?? '');
+  return d.innerHTML;
 }
 
 const DEMO_SIGNALS = [
@@ -291,26 +299,26 @@ function formatChange(n) {
   return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
 }
 function signalBadge(s) {
-  const cls = s.toLowerCase();
-  return `<span class="signal-badge ${cls}">${s}</span>`;
+  const cls = esc(s).toLowerCase();
+  return `<span class="signal-badge ${cls}">${esc(s)}</span>`;
 }
 
 function renderSignals(signals) {
   const grid = document.getElementById('signals-grid');
   grid.innerHTML = '';
   signals.forEach(sig => {
-    const cls = sig.signal.toLowerCase();
+    const cls = (sig.signal || '').toLowerCase();
     const card = document.createElement('div');
     card.className = `signal-card ${cls}`;
     card.dataset.signal = sig.signal;
     card.innerHTML = `
       <div class="signal-header">
-        <span class="signal-symbol">${sig.symbol}</span>
+        <span class="signal-symbol">${esc(sig.symbol)}</span>
         ${signalBadge(sig.signal)}
       </div>
       <div class="confidence-bar"><div class="confidence-fill ${cls}" style="width:${sig.confidence_score}%"></div></div>
       <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-bottom:0.5rem;">
-        <span>${(sig.strength||'').replace('_',' ')}</span>
+        <span>${esc((sig.strength||'').replace('_',' '))}</span>
         <span><strong style="color:#e2e8f0;">${sig.confidence_score}%</strong> confianza</span>
       </div>
       <div class="signal-prices">
@@ -319,8 +327,8 @@ function renderSignals(signals) {
         <div class="price-item"><div class="price-label">Stop Loss</div><div class="price-value negative">${formatPrice(sig.stop_loss)}</div></div>
       </div>
       <div style="font-size:0.8125rem;color:#64748b;margin-bottom:0.5rem;">R/R: <strong style="color:#e2e8f0;">${(sig.risk_reward_ratio||0).toFixed(2)}</strong></div>
-      <p class="signal-reasoning">${sig.reasoning}</p>
-      <a href="signals.html?id=${sig.id}" class="btn-view-signal">Ver análisis completo →</a>
+      <p class="signal-reasoning">${esc(sig.reasoning)}</p>
+      <a href="signals.html?id=${encodeURIComponent(sig.id)}" class="btn-view-signal">Ver análisis completo →</a>
     `;
     grid.appendChild(card);
   });
@@ -330,7 +338,7 @@ function renderWatchlist(items) {
   const tbody = document.getElementById('watchlist-body');
   tbody.innerHTML = items.map(item => `
     <tr style="border-top:1px solid #1e2d4d;">
-      <td style="padding:0.625rem 0.25rem;font-weight:600;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">${item.symbol}</td>
+      <td style="padding:0.625rem 0.25rem;font-weight:600;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">${esc(item.symbol)}</td>
       <td style="padding:0.625rem 0.25rem;text-align:right;font-family:'JetBrains Mono',monospace;color:#e2e8f0;">${formatPrice(item.price)}</td>
       <td style="padding:0.625rem 0.25rem;text-align:right;font-family:'JetBrains Mono',monospace;color:${item.change>=0?'#10b981':'#ef4444'};">${formatChange(item.change)}</td>
       <td style="padding:0.625rem 0.25rem;text-align:center;">${signalBadge(item.signal)}</td>
@@ -342,11 +350,11 @@ function renderNews(articles) {
   const grid = document.getElementById('news-grid');
   grid.innerHTML = articles.map((a, i) => `
     <div class="news-card ${i === 0 ? 'featured' : ''}">
-      <div class="news-headline">${a.title}</div>
-      ${a.summary ? `<p style="font-size:0.875rem;color:#94a3b8;line-height:1.6;margin:0.5rem 0;">${a.summary}</p>` : ''}
+      <div class="news-headline">${esc(a.title)}</div>
+      ${a.summary ? `<p style="font-size:0.875rem;color:#94a3b8;line-height:1.6;margin:0.5rem 0;">${esc(a.summary)}</p>` : ''}
       <div class="news-meta" style="margin-top:0.75rem;">
-        <span>${a.source}</span><span>•</span><span>${a.time}</span>
-        <span class="sentiment-chip ${a.sentiment}">${a.sentiment==='positive'?'▲ Positivo':a.sentiment==='negative'?'▼ Negativo':'→ Neutral'}</span>
+        <span>${esc(a.source)}</span><span>•</span><span>${esc(a.time)}</span>
+        <span class="sentiment-chip ${esc(a.sentiment)}">${a.sentiment==='positive'?'▲ Positivo':a.sentiment==='negative'?'▼ Negativo':'→ Neutral'}</span>
       </div>
     </div>
   `).join('');

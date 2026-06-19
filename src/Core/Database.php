@@ -367,8 +367,11 @@ final class Database
         $pdo = new \PDO($dsn, $username, $password, $options);
 
         // Set search_path for PostgreSQL schema scoping.
+        // PDO::quote() wraps in single quotes (string literals), which PostgreSQL
+        // rejects in SET search_path. Use double-quoted identifiers instead.
         if ($driver === 'pgsql' && $schema !== '') {
-            $pdo->exec("SET search_path TO " . $pdo->quote($schema) . ", public");
+            $quotedSchema = '"' . str_replace('"', '', $schema) . '"';
+            $pdo->exec("SET search_path TO {$quotedSchema}, public");
         }
 
         // Apply statement timeout (pg-specific advisory).

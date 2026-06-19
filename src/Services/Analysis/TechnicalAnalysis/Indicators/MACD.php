@@ -62,7 +62,12 @@ class MACD
             }
         }
 
-        // Build signal-EMA input: a dense array of MACD values from $macdStart onward
+        // Build signal-EMA input: a dense array of MACD values from $macdStart onward.
+        // Guard: if $macdStart stayed -1 (no valid fast+slow EMA overlap), return early.
+        if ($macdStart < 0) {
+            return $result;
+        }
+
         $macdDense = [];
         for ($i = $macdStart; $i < $n; $i++) {
             $macdDense[] = (float)$macdLine[$i];

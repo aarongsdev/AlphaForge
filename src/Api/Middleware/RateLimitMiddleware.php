@@ -154,13 +154,16 @@ final class RateLimitMiddleware
             // INCR is atomic; if the key did not exist, it is created with value 1.
             $count = (int) $redis->incr($key);
 
-            // Set TTL only on first use (TTL = -1 means no expiry yet).
-            if ($count === 1) {
+            // Always check TTL and (re-)set it if missing.
+            // A TTL of -1 means no expiry, which can happen if the process crashed
+            // between INCR and EXPIRE on a previous request. Fixing it here makes
+            // the window eventually self-heal without manual Redis intervention.
+            $ttl = (int) $redis->ttl($key);
+            if ($ttl === -1) {
                 $redis->expire($key, $this->windowSeconds);
+                $ttl = $this->windowSeconds;
             }
 
-            // Retrieve remaining TTL to calculate reset timestamp.
-            $ttl   = (int) $redis->ttl($key);
             $reset = $ttl > 0 ? time() + $ttl : time() + $this->windowSeconds;
 
             return ['count' => $count, 'reset' => $reset];

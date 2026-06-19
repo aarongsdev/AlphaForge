@@ -60,7 +60,7 @@ final class WatchlistController
             $this->success($watchlists, 'Watchlists retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['user_id' => $userId]);
-            $this->error('Failed to retrieve watchlists: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve watchlists', 500);
         }
     }
 
@@ -103,7 +103,7 @@ final class WatchlistController
             $this->success($watchlist, 'Watchlist created.', 201);
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['user_id' => $userId]);
-            $this->error('Failed to create watchlist: ' . $e->getMessage(), 500);
+            $this->error('Failed to create watchlist', 500);
         }
     }
 
@@ -163,7 +163,7 @@ final class WatchlistController
             $this->success($watchlist, 'Watchlist retrieved.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['watchlist_id' => $watchlist['id']]);
-            $this->error('Failed to retrieve watchlist: ' . $e->getMessage(), 500);
+            $this->error('Failed to retrieve watchlist', 500);
         }
     }
 
@@ -213,7 +213,7 @@ final class WatchlistController
             $this->success($updated, 'Watchlist updated.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['watchlist_id' => $watchlist['id']]);
-            $this->error('Failed to update watchlist: ' . $e->getMessage(), 500);
+            $this->error('Failed to update watchlist', 500);
         }
     }
 
@@ -240,7 +240,7 @@ final class WatchlistController
             exit;
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['watchlist_id' => $watchlist['id']]);
-            $this->error('Failed to delete watchlist: ' . $e->getMessage(), 500);
+            $this->error('Failed to delete watchlist', 500);
         }
     }
 
@@ -321,7 +321,7 @@ final class WatchlistController
             $this->success($item, 'Item added to watchlist.', 201);
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['watchlist_id' => $watchlist['id'], 'symbol' => $symbol]);
-            $this->error('Failed to add item: ' . $e->getMessage(), 500);
+            $this->error('Failed to add item', 500);
         }
     }
 
@@ -352,7 +352,7 @@ final class WatchlistController
             exit;
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['watchlist_id' => $watchlist['id'], 'item_id' => $itemId]);
-            $this->error('Failed to remove item: ' . $e->getMessage(), 500);
+            $this->error('Failed to remove item', 500);
         }
     }
 
@@ -422,7 +422,7 @@ final class WatchlistController
             $this->success($updated, 'Watchlist item updated.');
         } catch (\Throwable $e) {
             $this->logger->exception($e, ['watchlist_id' => $watchlist['id'], 'item_id' => $itemId]);
-            $this->error('Failed to update item: ' . $e->getMessage(), 500);
+            $this->error('Failed to update item', 500);
         }
     }
 
