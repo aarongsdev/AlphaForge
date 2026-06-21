@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="../../assets/css/main.css">
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="../../assets/js/ai-analysis.js"></script>
 <style>
 /* ─── Page-level reset additions ──────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -692,6 +693,7 @@
 .toast.success .toast-icon { color: #10b981; }
 @keyframes toastIn  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(12px); } }
+@keyframes spin     { to { transform: rotate(360deg); } }
 .toast.hiding { animation: toastOut 0.2s ease forwards; }
 
 /* ─── Responsive ──────────────────────────────────────────────────── */
@@ -841,7 +843,38 @@
         LIVE
       </span>
     </h1>
-    <span class="page-meta" id="signals-timestamp">Actualizando...</span>
+    <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
+      <span class="page-meta" id="signals-timestamp">Actualizando...</span>
+      <button id="btn-gen-ai" onclick="generateAISignals()" style="display:flex;align-items:center;gap:0.5rem;padding:0.5625rem 1.125rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:0.875rem;font-weight:600;cursor:pointer;transition:background 0.2s,transform 0.1s;white-space:nowrap;font-family:'Inter',sans-serif;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Actualizar con IA
+      </button>
+    </div>
+  </div>
+
+  <!-- API Key Modal -->
+  <div id="sig-api-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:1.5rem;">
+    <div style="background:#0f1629;border:1px solid #1e2d4d;border-radius:16px;width:100%;max-width:460px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:1.5rem 1.5rem 1rem;border-bottom:1px solid #1e2d4d;">
+        <div>
+          <div style="font-size:1.125rem;font-weight:700;color:#e2e8f0;">Configurar Claude API Key</div>
+          <div style="font-size:0.8125rem;color:#64748b;margin-top:0.25rem;">Necesaria para generar señales IA reales</div>
+        </div>
+        <button onclick="closeSigApiModal()" style="width:32px;height:32px;border-radius:8px;border:1px solid #1e2d4d;background:#141d35;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.125rem;">×</button>
+      </div>
+      <div style="padding:1.25rem 1.5rem 1.5rem;">
+        <p style="font-size:0.875rem;color:#94a3b8;line-height:1.65;margin:0 0 1rem;">AlphaForge usa la API de Claude (Anthropic) para generar señales reales de compra/venta. Tu API key se guarda solo en tu navegador y nunca se envía a nuestros servidores.</p>
+        <label style="display:block;font-size:0.8125rem;font-weight:600;color:#94a3b8;margin-bottom:0.5rem;">API Key de Anthropic</label>
+        <input type="password" id="sig-api-input" placeholder="sk-ant-api03-..."
+          style="width:100%;padding:0.75rem 1rem;background:#141d35;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;margin-bottom:1rem;"
+          onkeydown="if(event.key==='Enter') saveSigApiKey()">
+        <div style="display:flex;gap:0.75rem;">
+          <button onclick="saveSigApiKey()" style="flex:1;padding:0.75rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:0.9375rem;font-weight:600;cursor:pointer;">Guardar y Generar</button>
+          <button onclick="closeSigApiModal()" style="padding:0.75rem 1.25rem;background:transparent;border:1px solid #1e2d4d;border-radius:8px;color:#94a3b8;font-size:0.9375rem;cursor:pointer;">Cancelar</button>
+        </div>
+        <p style="font-size:0.75rem;color:#475569;margin-top:0.875rem;text-align:center;">Obtén tu API key gratis en console.anthropic.com</p>
+      </div>
+    </div>
   </div>
 
   <!-- Performance Summary Bar -->
@@ -1244,15 +1277,6 @@ function toggleSidebar() {
     if (topbar) topbar.classList.toggle('sidebar-collapsed');
   }
 }
-    overlay.classList.toggle('active');
-  } else {
-    sidebar.classList.toggle('collapsed');
-  }
-  const topbar = document.querySelector('.topbar');
-  const main   = document.querySelector('.main-content');
-  if (topbar) topbar.classList.toggle('sidebar-collapsed');
-  if (main)   main.classList.toggle('sidebar-collapsed');
-}
 
 /* ─── Logout ──────────────────────────────────────────────────────── */
 function logout() {
@@ -1571,6 +1595,120 @@ document.addEventListener('keydown', function (e) {
     if (modal && modal.classList.contains('open')) closeModal();
   }
 });
+
+/* ─── API Key modal (signals page) ───────────────────────────────── */
+function openSigApiModal() {
+  const modal = document.getElementById('sig-api-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    const input = document.getElementById('sig-api-input');
+    if (input) {
+      input.value = (typeof AF_AI !== 'undefined') ? AF_AI.getApiKey() : '';
+      input.style.borderColor = '#1e2d4d';
+      setTimeout(() => input.focus(), 100);
+    }
+  }
+}
+
+function closeSigApiModal() {
+  const modal = document.getElementById('sig-api-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveSigApiKey() {
+  const input = document.getElementById('sig-api-input');
+  const key = input ? input.value.trim() : '';
+  if (!key) {
+    if (input) input.style.borderColor = '#ef4444';
+    return;
+  }
+  if (typeof AF_AI !== 'undefined') AF_AI.saveApiKey(key);
+  closeSigApiModal();
+  setTimeout(generateAISignals, 150);
+}
+
+/* ─── AI signal generation ────────────────────────────────────────── */
+const AI_SYMBOLS = [
+  { sym: 'NVDA',  name: 'NVIDIA Corporation',     assetType: 'Acciones' },
+  { sym: 'AAPL',  name: 'Apple Inc.',              assetType: 'Acciones' },
+  { sym: 'MSFT',  name: 'Microsoft Corporation',   assetType: 'Acciones' },
+  { sym: 'TSLA',  name: 'Tesla Inc.',              assetType: 'Acciones' },
+  { sym: 'AMZN',  name: 'Amazon.com Inc.',         assetType: 'Acciones' },
+];
+
+function aiToSignal(sym, name, assetType, a, stockData) {
+  const cur    = stockData ? stockData.currentPrice : null;
+  const entry  = a.entry_price  ?? cur;
+  const stop   = a.stop_loss    ?? (entry ? entry * 0.95 : null);
+  const target = a.target_base  ?? (entry ? entry * 1.10 : null);
+
+  let rr = '—';
+  if (entry && stop && target) {
+    const reward = Math.abs(target - entry);
+    const risk   = Math.abs(entry  - stop);
+    if (risk > 0) rr = '1:' + (reward / risk).toFixed(1);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    symbol:    sym,
+    name:      name,
+    type:      a.recommendation,
+    confidence: a.confidence,
+    entry:     entry   ?? 0,
+    target:    target  ?? 0,
+    stop:      stop    ?? 0,
+    rr,
+    timeframe: a.time_horizon ?? 'Medio Plazo',
+    assetType,
+    date:      today,
+    reasoning: a.reasoning || a.summary || '',
+  };
+}
+
+async function generateAISignals() {
+  if (typeof AF_AI === 'undefined' || !AF_AI.hasApiKey()) {
+    openSigApiModal();
+    return;
+  }
+
+  const btn = document.getElementById('btn-gen-ai');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Analizando...';
+  }
+
+  showToast('Consultando a Claude para ' + AI_SYMBOLS.length + ' activos...', '');
+  const newSignals = [];
+
+  for (const { sym, name, assetType } of AI_SYMBOLS) {
+    try {
+      const { analysis, stockData } = await AF_AI.analyze(sym);
+      newSignals.push(aiToSignal(sym, name, assetType, analysis, stockData));
+    } catch (e) {
+      // skip failed symbol
+    }
+  }
+
+  if (newSignals.length > 0) {
+    // Replace demo signals with AI-generated ones, keep any not in AI_SYMBOLS list
+    const aiSymbols = new Set(AI_SYMBOLS.map(s => s.sym));
+    const kept = SIGNALS.filter(s => !aiSymbols.has(s.symbol));
+    SIGNALS.length = 0;
+    newSignals.forEach(s => SIGNALS.push(s));
+    kept.forEach(s => SIGNALS.push(s));
+    renderTable();
+    updateTimestamp();
+    showToast('✓ ' + newSignals.length + ' señales IA actualizadas', 'success');
+  } else {
+    showToast('No se pudieron obtener señales. Verifica tu API key.', '');
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Actualizar con IA';
+  }
+}
 
 /* ─── Boot ────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function () {

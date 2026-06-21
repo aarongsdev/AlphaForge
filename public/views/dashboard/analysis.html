@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="../../assets/js/ai-analysis.js"></script>
 <style>
 /* ========== ANALYSIS PAGE SPECIFIC STYLES ========== */
 
@@ -864,6 +865,9 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.3; }
 }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 /* Responsive */
 @media (max-width: 1024px) {
@@ -1000,6 +1004,31 @@
 
 <!-- Toast Container -->
 <div class="toast-container" id="toast-container"></div>
+
+<!-- API Key Modal -->
+<div class="modal-backdrop" id="api-key-modal" style="z-index:1000;display:none;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:#0f1629;border:1px solid #1e2d4d;border-radius:16px;width:100%;max-width:460px;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:1.5rem 1.5rem 1rem;border-bottom:1px solid #1e2d4d;">
+      <div>
+        <div style="font-size:1.125rem;font-weight:700;color:#e2e8f0;">Configurar Claude API Key</div>
+        <div style="font-size:0.8125rem;color:#64748b;margin-top:0.25rem;">Necesaria para el análisis IA real</div>
+      </div>
+      <button onclick="closeApiKeyModal()" style="width:32px;height:32px;border-radius:8px;border:1px solid #1e2d4d;background:#141d35;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.125rem;">×</button>
+    </div>
+    <div style="padding:1.25rem 1.5rem 1.5rem;">
+      <p style="font-size:0.875rem;color:#94a3b8;line-height:1.65;margin:0 0 1rem;">AlphaForge usa la API de Claude (Anthropic) para generar análisis reales de compra/venta. Tu API key se guarda solo en tu navegador y nunca se envía a nuestros servidores.</p>
+      <label style="display:block;font-size:0.8125rem;font-weight:600;color:#94a3b8;margin-bottom:0.5rem;">API Key de Anthropic</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..."
+        style="width:100%;padding:0.75rem 1rem;background:#141d35;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;margin-bottom:1rem;"
+        onkeydown="if(event.key==='Enter') saveApiKeyFromModal()">
+      <div style="display:flex;gap:0.75rem;">
+        <button onclick="saveApiKeyFromModal()" style="flex:1;padding:0.75rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:0.9375rem;font-weight:600;cursor:pointer;">Guardar y Analizar</button>
+        <button onclick="closeApiKeyModal()" style="padding:0.75rem 1.25rem;background:transparent;border:1px solid #1e2d4d;border-radius:8px;color:#94a3b8;font-size:0.9375rem;cursor:pointer;">Cancelar</button>
+      </div>
+      <p style="font-size:0.75rem;color:#475569;margin-top:0.875rem;text-align:center;">Obtén tu API key gratis en console.anthropic.com</p>
+    </div>
+  </div>
+</div>
 
 <!-- ============================================================
      MAIN CONTENT
@@ -1401,18 +1430,18 @@
     <!-- Composite score + recommendation -->
     <div class="reporte-top">
       <div class="composite-gauge-wrap">
-        <div class="composite-gauge">
-          <div class="gauge-score">78<span>/100</span></div>
+        <div class="composite-gauge" id="composite-gauge-el">
+          <div class="gauge-score" id="gauge-score-val">78<span>/100</span></div>
         </div>
         <div class="gauge-label">Puntuación Compuesta</div>
       </div>
-      <div class="recommendation-card">
+      <div class="recommendation-card" id="rec-card-el">
         <div class="rec-header">
-          <span class="badge badge-buy badge-large">BUY</span>
-          <h2 class="rec-title">COMPRAR AAPL</h2>
+          <span class="badge badge-buy badge-large" id="rec-badge-el">BUY</span>
+          <h2 class="rec-title" id="rec-title-el">COMPRAR AAPL</h2>
         </div>
         <div class="rec-confidence">
-          Nivel de Confianza: <span>84%</span>
+          Nivel de Confianza: <span id="rec-conf-span">84%</span>
         </div>
         <table class="rec-breakdown-table">
           <thead>
@@ -1425,23 +1454,23 @@
           <tbody>
             <tr>
               <td>Técnico</td>
-              <td>82 / 100</td>
-              <td><span class="badge badge-buy">BUY</span></td>
+              <td id="rec-tech-score">82 / 100</td>
+              <td id="rec-tech-badge"><span class="badge badge-buy">BUY</span></td>
             </tr>
             <tr>
               <td>Fundamental</td>
-              <td>71 / 100</td>
-              <td><span class="badge badge-neutral">Neutral</span></td>
+              <td id="rec-fund-score">71 / 100</td>
+              <td id="rec-fund-badge"><span class="badge badge-neutral">Neutral</span></td>
             </tr>
             <tr>
               <td>Sentimiento</td>
-              <td>78 / 100</td>
-              <td><span class="badge badge-buy">BUY</span></td>
+              <td id="rec-sent-score">78 / 100</td>
+              <td id="rec-sent-badge"><span class="badge badge-buy">BUY</span></td>
             </tr>
             <tr>
               <td>Momentum</td>
-              <td>85 / 100</td>
-              <td><span class="badge badge-buy">BUY</span></td>
+              <td id="rec-mom-score">85 / 100</td>
+              <td id="rec-mom-badge"><span class="badge badge-buy">BUY</span></td>
             </tr>
           </tbody>
         </table>
@@ -1453,18 +1482,18 @@
     <div class="price-targets-row">
       <div class="price-target-card">
         <div class="pt-label">Conservador</div>
-        <div class="pt-price">$195.00</div>
-        <div class="pt-change">+6.8% desde $182.50</div>
+        <div class="pt-price" id="pt-conservative">$195.00</div>
+        <div class="pt-change" id="pt-conservative-chg">+6.8% desde $182.50</div>
       </div>
       <div class="price-target-card base">
         <div class="pt-label" style="color:#2563eb;">Base &#9733;</div>
-        <div class="pt-price">$210.00</div>
-        <div class="pt-change">+15.1% desde $182.50</div>
+        <div class="pt-price" id="pt-base">$210.00</div>
+        <div class="pt-change" id="pt-base-chg">+15.1% desde $182.50</div>
       </div>
       <div class="price-target-card">
         <div class="pt-label">Optimista</div>
-        <div class="pt-price">$225.00</div>
-        <div class="pt-change">+23.3% desde $182.50</div>
+        <div class="pt-price" id="pt-optimistic">$225.00</div>
+        <div class="pt-change" id="pt-optimistic-chg">+23.3% desde $182.50</div>
       </div>
     </div>
 
@@ -1478,7 +1507,7 @@
         </svg>
         Riesgos Clave
       </h3>
-      <ul class="risks-list">
+      <ul class="risks-list" id="reporte-risks-list">
         <li>Riesgo regulatorio antitrust en Europa y EEUU — posible impacto en App Store y servicios de pago</li>
         <li>Desaceleración en ventas iPhone en China (-14% YoY) — mercado más competitivo con Huawei</li>
         <li>Competencia creciente en servicios de streaming y contenido digital</li>
@@ -1493,20 +1522,47 @@
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;">
         <div style="text-align:center;">
           <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Entrada</div>
-          <div style="font-size:1.125rem;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">$182.50</div>
+          <div id="pos-entry" style="font-size:1.125rem;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">$182.50</div>
         </div>
         <div style="text-align:center;">
           <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Stop Loss</div>
-          <div style="font-size:1.125rem;font-weight:700;color:#ef4444;font-family:'JetBrains Mono',monospace;">$175.00</div>
+          <div id="pos-stop" style="font-size:1.125rem;font-weight:700;color:#ef4444;font-family:'JetBrains Mono',monospace;">$175.00</div>
         </div>
         <div style="text-align:center;">
           <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Target</div>
-          <div style="font-size:1.125rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">$210.00</div>
+          <div id="pos-target" style="font-size:1.125rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">$210.00</div>
         </div>
         <div style="text-align:center;">
           <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">R/R Ratio</div>
-          <div style="font-size:1.125rem;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">3.67x</div>
+          <div id="pos-rr" style="font-size:1.125rem;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">3.67x</div>
         </div>
+      </div>
+    </div>
+
+    <!-- AI Summary (populated after analysis) -->
+    <div id="ai-summary-card" style="background:#141d35;border:1px solid #1e2d4d;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;display:none;">
+      <h3 style="margin:0 0 0.75rem 0;font-size:0.9375rem;font-weight:600;color:#e2e8f0;display:flex;align-items:center;gap:0.5rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+        Resumen Ejecutivo IA
+        <span id="ai-time-horizon" style="font-size:0.75rem;font-weight:500;color:#94a3b8;background:#0f1629;border:1px solid #1e2d4d;padding:0.2rem 0.625rem;border-radius:20px;"></span>
+      </h3>
+      <p id="ai-summary-text" style="font-size:0.875rem;color:#94a3b8;line-height:1.7;margin:0 0 0.875rem;"></p>
+      <div style="background:#0f1629;border:1px solid #1e2d4d;border-radius:8px;padding:0.875rem;">
+        <div style="font-size:0.6875rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem;">Razonamiento del modelo</div>
+        <p id="ai-reasoning-text" style="font-size:0.8125rem;color:#94a3b8;line-height:1.6;margin:0;"></p>
+      </div>
+    </div>
+
+    <!-- Loading overlay for Reporte tab -->
+    <div id="reporte-loading" style="display:none;padding:3rem;text-align:center;color:#64748b;">
+      <div style="display:inline-flex;flex-direction:column;align-items:center;gap:1rem;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" style="animation:spin 1s linear infinite;">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        <div style="font-size:0.9375rem;font-weight:500;">Consultando a Claude...</div>
+        <div style="font-size:0.8125rem;color:#475569;">Obteniendo datos de mercado y generando análisis</div>
       </div>
     </div>
 
@@ -1562,11 +1618,6 @@ function toggleSidebar() {
     sidebar.classList.toggle('collapsed');
     const topbar = document.querySelector('.topbar');
     if (topbar) topbar.classList.toggle('sidebar-collapsed');
-  }
-}
-    overlay.classList.toggle('active');
-  } else {
-    sidebar.classList.toggle('collapsed');
   }
 }
 
@@ -1657,8 +1708,8 @@ function showToast(message, type) {
   if (!container) return;
   var toast = document.createElement('div');
   toast.className = 'toast';
-  var borderColor = (type === 'info') ? '#2563eb' : '#10b981';
-  var iconColor   = (type === 'info') ? '#2563eb' : '#10b981';
+  var borderColor = type === 'error' ? '#ef4444' : (type === 'info') ? '#2563eb' : '#10b981';
+  var iconColor   = type === 'error' ? '#ef4444' : (type === 'info') ? '#2563eb' : '#10b981';
   toast.style.borderColor = borderColor;
   toast.innerHTML =
     '<span class="toast-icon" style="color:' + iconColor + ';">&#9889;</span>' +
@@ -1672,9 +1723,224 @@ function showToast(message, type) {
   }, 4200);
 }
 
-function generateSignal() {
+/* ── XSS helper ───────────────────────────────────────────── */
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = String(s ?? '');
+  return d.innerHTML;
+}
+
+/* ── API Key modal ────────────────────────────────────────── */
+var _apiKeyCallback = null;
+
+function showApiKeyModal(callback) {
+  _apiKeyCallback = callback || null;
+  var modal = document.getElementById('api-key-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    var input = document.getElementById('api-key-input');
+    if (input) {
+      input.value = AF_AI.getApiKey();
+      input.style.borderColor = '#1e2d4d';
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  }
+}
+
+function closeApiKeyModal() {
+  var modal = document.getElementById('api-key-modal');
+  if (modal) modal.style.display = 'none';
+  _apiKeyCallback = null;
+}
+
+function saveApiKeyFromModal() {
+  var input = document.getElementById('api-key-input');
+  var key = input ? input.value.trim() : '';
+  if (!key) {
+    if (input) input.style.borderColor = '#ef4444';
+    return;
+  }
+  AF_AI.saveApiKey(key);
+  closeApiKeyModal();
+  if (_apiKeyCallback) {
+    var cb = _apiKeyCallback;
+    _apiKeyCallback = null;
+    setTimeout(cb, 100);
+  }
+}
+
+/* ── Reporte loading state ────────────────────────────────── */
+function showReporteLoading(show) {
+  var loading  = document.getElementById('reporte-loading');
+  var content  = document.querySelector('#tab-reporte .reporte-top');
+  var priceRow = document.querySelector('#tab-reporte .price-targets-row');
+  var risksCard = document.querySelector('#tab-reporte .risks-card');
+  var posCard  = document.querySelector('#tab-reporte .risks-card + div');
+  var summary  = document.getElementById('ai-summary-card');
+  var targets  = document.getElementById('price-targets-label');
+
+  var mainEls = [content, priceRow, risksCard, posCard];
+  mainEls.forEach(function(el) {
+    if (el) el.style.opacity = show ? '0.3' : '1';
+  });
+  if (loading) loading.style.display = show ? 'block' : 'none';
+  if (!show && summary) summary.style.display = 'block';
+}
+
+/* ── Score → badge HTML ───────────────────────────────────── */
+function scoreBadgeHtml(score) {
+  if (score >= 65) return '<span class="badge badge-buy">BUY</span>';
+  if (score <= 40) return '<span class="badge badge-sell">SELL</span>';
+  return '<span class="badge badge-neutral">Neutral</span>';
+}
+
+/* ── Render AI report into Reporte tab ────────────────────── */
+function renderAIReport(sym, a, stockData) {
+  var cur = stockData ? stockData.currentPrice : null;
+  var fmt = function(v) { return v != null ? '$' + parseFloat(v).toFixed(2) : 'N/A'; };
+  var pctChg = function(v) {
+    if (v == null || !cur) return '';
+    var pct = ((v - cur) / cur * 100).toFixed(1);
+    return (pct >= 0 ? '+' : '') + pct + '% desde $' + cur.toFixed(2);
+  };
+
+  /* Composite gauge */
+  var scoreEl = document.getElementById('gauge-score-val');
+  if (scoreEl) scoreEl.innerHTML = esc(a.composite_score) + '<span>/100</span>';
+
+  var gaugeEl = document.getElementById('composite-gauge-el');
+  if (gaugeEl) {
+    var clr = a.composite_score >= 65 ? '#10b981' : a.composite_score >= 45 ? '#f59e0b' : '#ef4444';
+    var rgb = a.composite_score >= 65 ? '16,185,129' : a.composite_score >= 45 ? '245,158,11' : '239,68,68';
+    gaugeEl.style.borderColor = clr;
+    gaugeEl.style.background  = 'rgba(' + rgb + ',0.06)';
+    gaugeEl.style.boxShadow   = '0 0 40px rgba(' + rgb + ',0.18)';
+  }
+
+  /* Recommendation */
+  var recMap   = { BUY: 'badge-buy', SELL: 'badge-sell', HOLD: 'badge-neutral' };
+  var titleMap = { BUY: 'COMPRAR', SELL: 'VENDER', HOLD: 'MANTENER' };
+  var colorMap = { BUY: '#10b981', SELL: '#ef4444', HOLD: '#f59e0b' };
+
+  var badgeEl = document.getElementById('rec-badge-el');
+  if (badgeEl) {
+    badgeEl.className   = 'badge badge-large ' + (recMap[a.recommendation] || 'badge-neutral');
+    badgeEl.textContent = a.recommendation;
+  }
+  var titleEl = document.getElementById('rec-title-el');
+  if (titleEl) titleEl.textContent = (titleMap[a.recommendation] || a.recommendation) + ' ' + sym;
+
+  var recCard = document.getElementById('rec-card-el');
+  if (recCard) recCard.style.borderColor = colorMap[a.recommendation] || '#1e2d4d';
+
+  var confEl = document.getElementById('rec-conf-span');
+  if (confEl) confEl.textContent = a.confidence + '%';
+
+  /* Scores breakdown */
+  var scoreData = {
+    'rec-tech-score': a.technical_score,
+    'rec-fund-score': a.fundamental_score,
+    'rec-sent-score': a.sentiment_score,
+    'rec-mom-score':  a.momentum_score,
+  };
+  Object.keys(scoreData).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = scoreData[id] + ' / 100';
+  });
+  var badgeData = {
+    'rec-tech-badge': a.technical_score,
+    'rec-fund-badge': a.fundamental_score,
+    'rec-sent-badge': a.sentiment_score,
+    'rec-mom-badge':  a.momentum_score,
+  };
+  Object.keys(badgeData).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = scoreBadgeHtml(badgeData[id]);
+  });
+
+  /* Price targets */
+  var ptData = [
+    ['pt-conservative', 'pt-conservative-chg', a.target_conservative],
+    ['pt-base',         'pt-base-chg',          a.target_base],
+    ['pt-optimistic',   'pt-optimistic-chg',    a.target_optimistic],
+  ];
+  ptData.forEach(function(row) {
+    var priceEl = document.getElementById(row[0]);
+    var chgEl   = document.getElementById(row[1]);
+    if (priceEl) priceEl.textContent = fmt(row[2]);
+    if (chgEl)   chgEl.textContent   = pctChg(row[2]);
+  });
+
+  /* Risks */
+  var risksList = document.getElementById('reporte-risks-list');
+  if (risksList && a.risks && a.risks.length) {
+    risksList.innerHTML = a.risks.map(function(r) { return '<li>' + esc(r) + '</li>'; }).join('');
+  }
+
+  /* Position parameters */
+  var entry = a.entry_price || cur;
+  var stop  = a.stop_loss;
+  var tgt   = a.target_base;
+
+  var posEntry  = document.getElementById('pos-entry');
+  var posStop   = document.getElementById('pos-stop');
+  var posTgt    = document.getElementById('pos-target');
+  var posRR     = document.getElementById('pos-rr');
+  if (posEntry)  posEntry.textContent  = fmt(entry);
+  if (posStop)   posStop.textContent   = fmt(stop);
+  if (posTgt)    posTgt.textContent    = fmt(tgt);
+  if (posRR && entry && stop && tgt) {
+    var reward = Math.abs(tgt   - entry);
+    var risk   = Math.abs(entry - stop);
+    posRR.textContent = risk > 0 ? (reward / risk).toFixed(2) + 'x' : 'N/A';
+  }
+
+  /* AI Summary */
+  var summaryEl   = document.getElementById('ai-summary-text');
+  var reasoningEl = document.getElementById('ai-reasoning-text');
+  var horizonEl   = document.getElementById('ai-time-horizon');
+  if (summaryEl   && a.summary)       summaryEl.textContent   = a.summary;
+  if (reasoningEl && a.reasoning)     reasoningEl.textContent = a.reasoning;
+  if (horizonEl   && a.time_horizon)  horizonEl.textContent   = a.time_horizon;
+}
+
+/* ── REAL generateSignal ──────────────────────────────────── */
+async function generateSignal() {
   var sym = currentSymbol || 'AAPL';
-  showToast('Señal generada: BUY ' + sym + ' con 84% confianza', 'success');
+
+  if (typeof AF_AI === 'undefined' || !AF_AI.hasApiKey()) {
+    showApiKeyModal(function() { generateSignal(); });
+    return;
+  }
+
+  var btn = document.querySelector('.btn-generate-signal');
+  var origHTML = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Analizando...';
+  }
+
+  switchTab('reporte');
+  showReporteLoading(true);
+
+  try {
+    var result   = await AF_AI.analyze(sym);
+    var analysis = result.analysis;
+    var stockData = result.stockData;
+    renderAIReport(sym, analysis, stockData);
+    showToast('Análisis IA generado para ' + sym, 'success');
+  } catch (err) {
+    showReporteLoading(false);
+    if (err.message === 'NO_KEY') {
+      showApiKeyModal(function() { generateSignal(); });
+    } else {
+      showToast('Error: ' + err.message, 'error');
+    }
+    return;
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origHTML; }
+    showReporteLoading(false);
+  }
 }
 
 // ── Tab switching ──────────────────────────────────────────────
