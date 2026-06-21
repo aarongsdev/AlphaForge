@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <style>
@@ -1544,8 +1545,29 @@
 
 // ── Sidebar ────────────────────────────────────────────────────
 function toggleSidebar() {
-  var sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.classList.toggle('collapsed');
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  if (window.innerWidth <= 768) {
+    sidebar.classList.toggle('mobile-open');
+    let overlay = document.getElementById('sidebar-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sidebar-overlay';
+      overlay.className = 'sidebar-overlay';
+      overlay.onclick = toggleSidebar;
+      document.body.appendChild(overlay);
+    }
+    overlay.classList.toggle('active');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    const topbar = document.querySelector('.topbar');
+    if (topbar) topbar.classList.toggle('sidebar-collapsed');
+  }
+}
+    overlay.classList.toggle('active');
+  } else {
+    sidebar.classList.toggle('collapsed');
+  }
 }
 
 function logout() {
