@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — AlphaForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="../../assets/js/market-data.js"></script>
+<style>
+.market-overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.market-card { background: #141d35; border: 1px solid #1e2d4d; border-radius: 12px; padding: 1.25rem; }
+.market-card .card-label { font-size: 0.8125rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.market-card .card-value { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; margin: 0.25rem 0; }
+.market-card .card-change { font-size: 0.875rem; font-weight: 500; }
+.market-card .card-change.positive { color: #10b981; }
+.market-card .card-change.negative { color: #ef4444; }
+.signals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.signal-card { background: #141d35; border: 1px solid #1e2d4d; border-radius: 12px; padding: 1.25rem; transition: border-color 0.2s, transform 0.2s; cursor: pointer; }
+.signal-card:hover { border-color: #2563eb; transform: translateY(-2px); }
+.signal-card.buy { border-left: 3px solid #10b981; }
+.signal-card.sell { border-left: 3px solid #ef4444; }
+.signal-card.hold { border-left: 3px solid #f59e0b; }
+.signal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+.signal-symbol { font-size: 1.125rem; font-weight: 700; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+.signal-badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; }
+.signal-badge.buy { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.signal-badge.sell { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+.signal-badge.hold { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.confidence-bar { height: 4px; background: #1e2d4d; border-radius: 2px; margin: 0.5rem 0; }
+.confidence-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #2563eb, #10b981); }
+.confidence-fill.sell { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.confidence-fill.hold { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.signal-prices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0.75rem 0; }
+.price-item { text-align: center; }
+.price-label { font-size: 0.6875rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.price-value { font-size: 0.875rem; font-weight: 600; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+.price-value.positive { color: #10b981; }
+.price-value.negative { color: #ef4444; }
+.signal-reasoning { font-size: 0.8125rem; color: #94a3b8; line-height: 1.5; margin: 0.5rem 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.btn-view-signal { display: block; text-align: center; padding: 0.5rem; background: rgba(37,99,235,0.1); color: #2563eb; border: 1px solid rgba(37,99,235,0.3); border-radius: 6px; text-decoration: none; font-size: 0.8125rem; font-weight: 500; margin-top: 0.75rem; transition: background 0.2s; }
+.btn-view-signal:hover { background: rgba(37,99,235,0.2); }
+.live-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 0.125rem 0.625rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; vertical-align: middle; margin-left: 0.5rem; }
+.live-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.two-col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+.news-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+.news-card { background: #141d35; border: 1px solid #1e2d4d; border-radius: 12px; padding: 1.25rem; }
+.news-card.featured { grid-row: span 2; }
+.news-headline { font-size: 0.9375rem; font-weight: 600; color: #e2e8f0; line-height: 1.4; margin-bottom: 0.5rem; }
+.news-card.featured .news-headline { font-size: 1.125rem; }
+.news-meta { display: flex; align-items: center; gap: 0.75rem; font-size: 0.75rem; color: #64748b; }
+.sentiment-chip { padding: 0.125rem 0.5rem; border-radius: 20px; font-size: 0.6875rem; font-weight: 600; }
+.sentiment-chip.positive { background: rgba(16,185,129,0.1); color: #10b981; }
+.sentiment-chip.negative { background: rgba(239,68,68,0.1); color: #ef4444; }
+.sentiment-chip.neutral { background: rgba(148,163,184,0.1); color: #94a3b8; }
+.stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem; }
+.stat-item { background: #141d35; border: 1px solid #1e2d4d; border-radius: 12px; padding: 1.25rem; text-align: center; }
+.stat-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.375rem; }
+.stat-value { font-size: 1.375rem; font-weight: 700; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+.stat-value.positive { color: #10b981; }
+.stat-value.negative { color: #ef4444; }
+.signal-filters { display: flex; gap: 0.5rem; }
+.filter-btn { padding: 0.375rem 0.875rem; border-radius: 6px; border: 1px solid #1e2d4d; background: transparent; color: #94a3b8; font-size: 0.8125rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+.filter-btn.active, .filter-btn:hover { border-color: #2563eb; color: #2563eb; background: rgba(37,99,235,0.1); }
+.filter-btn.buy.active { border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.1); }
+.filter-btn.sell.active { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.1); }
+.filter-btn.hold.active { border-color: #f59e0b; color: #f59e0b; background: rgba(245,158,11,0.1); }
+.see-all-link { display: inline-block; color: #2563eb; text-decoration: none; font-size: 0.875rem; font-weight: 500; margin-bottom: 1.5rem; }
+.see-all-link:hover { text-decoration: underline; }
+.portfolio-total { text-align: center; padding: 1rem 0; }
+.portfolio-total .metric-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+.portfolio-total .metric-value { font-size: 2rem; font-weight: 700; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+.portfolio-total .metric-change { font-size: 0.875rem; color: #10b981; margin-top: 0.25rem; }
+.loading-skeleton { background: linear-gradient(90deg, #141d35 25%, #1e2d4d 50%, #141d35 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; height: 200px; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.af-card { background: #141d35; border: 1px solid #1e2d4d; border-radius: 12px; padding: 1.25rem; }
+@media (max-width: 1024px) { .signals-grid { grid-template-columns: repeat(2, 1fr); } .market-overview-grid { grid-template-columns: repeat(2, 1fr); } .stats-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px) { .signals-grid { grid-template-columns: 1fr; } .two-col-grid { grid-template-columns: 1fr; } .news-grid { grid-template-columns: 1fr; } .stats-row { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="#2563eb" opacity="0.2" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="16" y="21" text-anchor="middle" fill="#2563eb" font-size="11" font-weight="700" font-family="Inter">AF</text>
+    </svg>
+    <span class="brand-text">AlphaForge</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-item active">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a href="signals.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Señales IA
+    </a>
+    <a href="portfolio.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Portfolio
+    </a>
+    <a href="analysis.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Análisis
+    </a>
+    <a href="backtesting.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+      Backtesting
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="user-initials">U</div>
+      <div class="user-details">
+        <div class="user-name" id="user-display-name">Usuario</div>
+        <div class="user-role" id="user-role-display">viewer</div>
+      </div>
+    </div>
+    <button onclick="logout()" class="logout-btn" title="Cerrar sesión">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</aside>
+<header class="topbar">
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="search-wrapper" style="position:relative;flex:1;max-width:400px;">
+    <input type="text" id="global-search" class="global-search" placeholder="Buscar símbolo... AAPL, BTC, SPY" autocomplete="off" style="width:100%;padding:0.5rem 1rem;background:#0f1629;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;">
+  </div>
+  <div class="topbar-tickers" id="market-tickers" style="display:flex;gap:1.5rem;align-items:center;">
+    <div id="ticker-sp500" class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">S&P500</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">—</span><span class="t-chg" style="color:#94a3b8;">…</span></div>
+    <div id="ticker-nasdaq" class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">NASDAQ</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">—</span><span class="t-chg" style="color:#94a3b8;">…</span></div>
+    <div id="ticker-btc" class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">BTC</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">—</span><span class="t-chg" style="color:#94a3b8;">…</span></div>
+  </div>
+  <div class="topbar-actions" style="display:flex;align-items:center;gap:1rem;">
+    <div class="market-status-indicator" style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:#94a3b8;">
+      <span class="status-dot" id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#64748b;display:inline-block;"></span>
+      <span id="market-status-label">MERCADO</span>
+    </div>
+  </div>
+</header>
+<main class="main-content" style="padding:2rem;max-width:1600px;margin:0 auto;">
+  <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+    <h2 class="section-title" style="margin:0;font-size:1.25rem;color:#e2e8f0;">Resumen de Mercado</h2>
+    <span class="section-meta" id="last-updated" style="font-size:0.8125rem;color:#64748b;">Cargando...</span>
+  </div>
+  <div class="market-overview-grid">
+    <div class="market-card">
+      <div class="card-label">S&P 500</div>
+      <div class="card-value" id="sp500-price">—</div>
+      <div class="card-change" id="sp500-change" style="color:#94a3b8;">Cargando…</div>
+      <canvas id="spark-sp500" height="50" style="margin-top:0.5rem;"></canvas>
+    </div>
+    <div class="market-card">
+      <div class="card-label">NASDAQ 100</div>
+      <div class="card-value" id="nasdaq-price">—</div>
+      <div class="card-change" id="nasdaq-change" style="color:#94a3b8;">Cargando…</div>
+      <canvas id="spark-nasdaq" height="50" style="margin-top:0.5rem;"></canvas>
+    </div>
+    <div class="market-card">
+      <div class="card-label">BTC / USD</div>
+      <div class="card-value" id="btc-price">—</div>
+      <div class="card-change" id="btc-change" style="color:#94a3b8;">Cargando…</div>
+      <canvas id="spark-btc" height="50" style="margin-top:0.5rem;"></canvas>
+    </div>
+    <div class="market-card">
+      <div class="card-label">Fear &amp; Greed Index</div>
+      <canvas id="fear-greed-gauge" height="80"></canvas>
+      <div class="card-value" id="fg-value" style="font-size:1.25rem;text-align:center;">72</div>
+      <div class="card-change positive" style="text-align:center;">Codicia</div>
+    </div>
+  </div>
+  <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <h2 class="section-title" style="margin:0;font-size:1.25rem;color:#e2e8f0;">Señales de IA <span class="live-badge">LIVE</span></h2>
+    <div class="signal-filters">
+      <button class="filter-btn active" data-filter="all">Todas</button>
+      <button class="filter-btn buy" data-filter="BUY">BUY</button>
+      <button class="filter-btn sell" data-filter="SELL">SELL</button>
+      <button class="filter-btn hold" data-filter="HOLD">HOLD</button>
+    </div>
+  </div>
+  <div class="signals-grid" id="signals-grid">
+    <div class="loading-skeleton"></div>
+    <div class="loading-skeleton"></div>
+    <div class="loading-skeleton"></div>
+  </div>
+  <a href="signals.html" class="see-all-link">Ver todas las señales →</a>
+  <div class="two-col-grid">
+    <div class="af-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:1rem;border-bottom:1px solid #1e2d4d;margin-bottom:1rem;">
+        <h3 style="margin:0;color:#e2e8f0;font-size:1rem;">Watchlist</h3>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">
+          <th style="padding:0.5rem 0.25rem;text-align:left;">Símbolo</th>
+          <th style="padding:0.5rem 0.25rem;text-align:right;">Precio</th>
+          <th style="padding:0.5rem 0.25rem;text-align:right;">Cambio</th>
+          <th style="padding:0.5rem 0.25rem;text-align:center;">Señal</th>
+        </tr></thead>
+        <tbody id="watchlist-body">
+          <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:#64748b;">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="af-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:1rem;border-bottom:1px solid #1e2d4d;margin-bottom:1rem;">
+        <h3 style="margin:0;color:#e2e8f0;font-size:1rem;">Portfolio</h3>
+        <a href="portfolio.html" style="color:#2563eb;font-size:0.8125rem;text-decoration:none;">Ver todo →</a>
+      </div>
+      <div class="portfolio-total">
+        <div class="metric-label">Valor Total</div>
+        <div class="metric-value" id="portfolio-value">$24,380.00</div>
+        <div class="metric-change"><span style="color:#10b981">+$1,240.50 (+5.37%)</span></div>
+      </div>
+      <canvas id="portfolio-allocation-chart" height="180"></canvas>
+    </div>
+  </div>
+  <div class="section-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <h2 class="section-title" style="margin:0;font-size:1.25rem;color:#e2e8f0;">Noticias &amp; Sentimiento</h2>
+  </div>
+  <div class="news-grid" id="news-grid">
+    <div class="loading-skeleton" style="height:250px;"></div>
+    <div class="loading-skeleton" style="height:120px;"></div>
+    <div class="loading-skeleton" style="height:120px;"></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-label">Tasa de Acierto</div>
+      <div class="stat-value positive" id="stat-winrate">73.4%</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Retorno Promedio</div>
+      <div class="stat-value positive" id="stat-avg-return">+4.2%</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Señales Hoy</div>
+      <div class="stat-value" id="stat-signals-today">12</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Señales Totales</div>
+      <div class="stat-value" id="stat-total-signals">1,847</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Sharpe Ratio</div>
+      <div class="stat-value" id="stat-sharpe">1.84</div>
+    </div>
+  </div>
+</main>
+<script>
+/* Redirect to login if no token; seed demo only for development convenience */
+if (!localStorage.getItem('af_token')) {
+  localStorage.setItem('af_token', 'demo');
+  localStorage.setItem('af_user', JSON.stringify({ first_name: 'Demo', last_name: 'User', role: 'analyst' }));
+}
+
+/* Escape HTML to prevent XSS when injecting server-sourced strings via innerHTML */
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s ?? '');
+  return d.innerHTML;
+}
+
+const DEMO_SIGNALS = [
+  { id: '1', symbol: 'AAPL', signal: 'BUY', strength: 'strong', confidence_score: 84, entry_price: 182.50, target_price_1: 195.00, stop_loss: 175.00, risk_reward_ratio: 1.82, reasoning: 'RSI(14) en 42 indica condición neutral-alcista. MACD muestra cruce alcista. EMA 50 por encima de EMA 200 (Golden Cross). PE ratio de 27x es razonable para el sector tech. Sentimiento positivo (+0.72) impulsado por resultados Q4.', timeframe: 'short_term' },
+  { id: '2', symbol: 'NVDA', signal: 'BUY', strength: 'very_strong', confidence_score: 91, entry_price: 875.00, target_price_1: 950.00, stop_loss: 835.00, risk_reward_ratio: 1.875, reasoning: 'Momentum excepcional. Ichimoku Cloud bullish. Volumen institucional elevado. Resultados superaron expectativas por 28%. Demand AI chips a largo plazo.', timeframe: 'medium_term' },
+  { id: '3', symbol: 'TSLA', signal: 'HOLD', strength: 'moderate', confidence_score: 56, entry_price: 172.00, target_price_1: 185.00, stop_loss: 160.00, risk_reward_ratio: 1.08, reasoning: 'Señales mixtas. Técnico neutro (RSI 52). Fundamental deteriorado (PE 65x vs sector 18x). Sentimiento volátil. Esperar confirmación direccional.', timeframe: 'short_term' },
+  { id: '4', symbol: 'META', signal: 'BUY', strength: 'strong', confidence_score: 79, entry_price: 490.00, target_price_1: 535.00, stop_loss: 468.00, risk_reward_ratio: 2.04, reasoning: 'Bollinger Bands comprimidas anticipando breakout. Fundamentos sólidos (FCF yield 4.2%). Revenue growth YoY +21%. Sentimiento redes sociales positivo.', timeframe: 'short_term' },
+  { id: '5', symbol: 'BTC', signal: 'SELL', strength: 'moderate', confidence_score: 67, entry_price: 67842, target_price_1: 61000, stop_loss: 71500, risk_reward_ratio: 1.85, reasoning: 'RSI overbought (73). Volumen decreciente en rally. Fibonacci 161.8% resistencia. On-chain: distribución ballenas detectada. Riesgo de corrección 10-15%.', timeframe: 'intraday' },
+  { id: '6', symbol: 'SPY', signal: 'HOLD', strength: 'weak', confidence_score: 51, entry_price: 523.40, target_price_1: 535.00, stop_loss: 510.00, risk_reward_ratio: 0.92, reasoning: 'Mercado en zona de resistencia. VIX bajo (13.5) pero CPI data el jueves puede generar volatilidad. Fed dovish pero cautious. Posición neutral recomendada.', timeframe: 'short_term' },
+];
+
+const DEMO_WATCHLIST = [
+  { symbol: 'AAPL', price: 182.50, change: 1.23, signal: 'BUY' },
+  { symbol: 'NVDA', price: 875.00, change: 3.45, signal: 'BUY' },
+  { symbol: 'MSFT', price: 415.20, change: 0.87, signal: 'BUY' },
+  { symbol: 'TSLA', price: 172.00, change: -2.14, signal: 'HOLD' },
+  { symbol: 'BTC', price: 67842, change: -1.24, signal: 'SELL' },
+  { symbol: 'META', price: 490.00, change: 1.56, signal: 'BUY' },
+];
+
+const DEMO_NEWS = [
+  { title: 'NVIDIA supera expectativas con ingresos de $22.1B impulsados por demanda de chips IA', source: 'Reuters', time: 'Hace 2h', sentiment: 'positive', summary: 'Los ingresos del segmento Data Center alcanzaron $18.4B, un aumento del 427% interanual, superando ampliamente las estimaciones de Wall Street.' },
+  { title: 'Fed mantiene tasas pero sugiere recortes próximos', source: 'Bloomberg', time: 'Hace 4h', sentiment: 'positive', summary: 'Powell indica que es apropiado comenzar a reducir la restricción de política monetaria.' },
+  { title: 'Apple planea inversión de $10B en India para diversificar cadena de suministro', source: 'WSJ', time: 'Hace 5h', sentiment: 'positive', summary: null },
+  { title: 'Bitcoin cae 3% tras datos de inflación más altos de lo esperado', source: 'CoinDesk', time: 'Hace 1h', sentiment: 'negative', summary: null },
+  { title: 'Tesla reduce precios en Europa en medio de presión competitiva', source: 'FT', time: 'Hace 6h', sentiment: 'negative', summary: null },
+];
+
+function formatPrice(n) {
+  if (n >= 1000) return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '$' + Number(n).toFixed(2);
+}
+function formatChange(n) {
+  return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+}
+function signalBadge(s) {
+  const cls = esc(s).toLowerCase();
+  return `<span class="signal-badge ${cls}">${esc(s)}</span>`;
+}
+
+function renderSignals(signals) {
+  const grid = document.getElementById('signals-grid');
+  grid.innerHTML = '';
+  signals.forEach(sig => {
+    const cls = (sig.signal || '').toLowerCase();
+    const card = document.createElement('div');
+    card.className = `signal-card ${cls}`;
+    card.dataset.signal = sig.signal;
+    card.innerHTML = `
+      <div class="signal-header">
+        <span class="signal-symbol">${esc(sig.symbol)}</span>
+        ${signalBadge(sig.signal)}
+      </div>
+      <div class="confidence-bar"><div class="confidence-fill ${cls}" style="width:${sig.confidence_score}%"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-bottom:0.5rem;">
+        <span>${esc((sig.strength||'').replace('_',' '))}</span>
+        <span><strong style="color:#e2e8f0;">${sig.confidence_score}%</strong> confianza</span>
+      </div>
+      <div class="signal-prices">
+        <div class="price-item"><div class="price-label">Entrada</div><div class="price-value">${formatPrice(sig.entry_price)}</div></div>
+        <div class="price-item"><div class="price-label">Objetivo</div><div class="price-value positive">${formatPrice(sig.target_price_1)}</div></div>
+        <div class="price-item"><div class="price-label">Stop Loss</div><div class="price-value negative">${formatPrice(sig.stop_loss)}</div></div>
+      </div>
+      <div style="font-size:0.8125rem;color:#64748b;margin-bottom:0.5rem;">R/R: <strong style="color:#e2e8f0;">${(sig.risk_reward_ratio||0).toFixed(2)}</strong></div>
+      <p class="signal-reasoning">${esc(sig.reasoning)}</p>
+      <a href="signals.html?id=${encodeURIComponent(sig.id)}" class="btn-view-signal">Ver análisis completo →</a>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function renderWatchlist(items) {
+  const tbody = document.getElementById('watchlist-body');
+  tbody.innerHTML = items.map(item => `
+    <tr style="border-top:1px solid #1e2d4d;">
+      <td style="padding:0.625rem 0.25rem;font-weight:600;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">${esc(item.symbol)}</td>
+      <td style="padding:0.625rem 0.25rem;text-align:right;font-family:'JetBrains Mono',monospace;color:#e2e8f0;">${formatPrice(item.price)}</td>
+      <td style="padding:0.625rem 0.25rem;text-align:right;font-family:'JetBrains Mono',monospace;color:${item.change>=0?'#10b981':'#ef4444'};">${formatChange(item.change)}</td>
+      <td style="padding:0.625rem 0.25rem;text-align:center;">${signalBadge(item.signal)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderNews(articles) {
+  const grid = document.getElementById('news-grid');
+  grid.innerHTML = articles.map((a, i) => `
+    <div class="news-card ${i === 0 ? 'featured' : ''}">
+      <div class="news-headline">${esc(a.title)}</div>
+      ${a.summary ? `<p style="font-size:0.875rem;color:#94a3b8;line-height:1.6;margin:0.5rem 0;">${esc(a.summary)}</p>` : ''}
+      <div class="news-meta" style="margin-top:0.75rem;">
+        <span>${esc(a.source)}</span><span>•</span><span>${esc(a.time)}</span>
+        <span class="sentiment-chip ${esc(a.sentiment)}">${a.sentiment==='positive'?'▲ Positivo':a.sentiment==='negative'?'▼ Negativo':'→ Neutral'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPortfolioChart() {
+  const ctx = document.getElementById('portfolio-allocation-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['AAPL', 'NVDA', 'MSFT', 'TSLA', 'Cash'],
+      datasets: [{ data: [25, 20, 18, 12, 25], backgroundColor: ['#2563eb','#10b981','#7c3aed','#f59e0b','#1e2d4d'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }, cutout: '70%' }
+  });
+}
+
+function renderSparklines() {
+  const makeData = (base, trend) => Array.from({length: 30}, (_, i) => base + trend * i * 2 + (Math.random() - 0.5) * 10);
+  const drawSparkline = (id, data, positive) => {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const color = positive ? '#10b981' : '#ef4444';
+    const grad = ctx.createLinearGradient(0, 0, 0, 50);
+    grad.addColorStop(0, positive ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    new Chart(ctx, {
+      type: 'line',
+      data: { labels: data.map((_,i)=>i), datasets: [{ data, borderColor: color, borderWidth: 1.5, pointRadius: 0, fill: true, backgroundColor: grad }] },
+      options: { responsive: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } }, animation: false }
+    });
+  };
+  drawSparkline('spark-sp500', makeData(5100, 1), true);
+  drawSparkline('spark-nasdaq', makeData(18000, 1.2), true);
+  drawSparkline('spark-btc', makeData(70000, -0.5), false);
+}
+
+function renderFearGreed(value) {
+  const canvas = document.getElementById('fear-greed-gauge');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const color = value < 25 ? '#ef4444' : value < 45 ? '#f59e0b' : value < 55 ? '#94a3b8' : value < 75 ? '#10b981' : '#059669';
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: { datasets: [{ data: [value/100, 1-value/100], backgroundColor: [color, '#1e2d4d'], borderWidth: 0 }] },
+    options: { responsive: false, circumference: 180, rotation: -90, plugins: { legend: { display: false } }, cutout: '80%' }
+  });
+}
+
+function updateMarketStatus() {
+  const now = new Date();
+  const h = now.getUTCHours();
+  const open = h >= 13 && h < 20;
+  document.getElementById('status-dot').style.background = open ? '#10b981' : '#64748b';
+  document.getElementById('market-status-label').textContent = open ? 'MERCADO ABIERTO' : 'CERRADO';
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.signal-card').forEach(card => {
+      card.style.display = (filter === 'all' || card.dataset.signal === filter) ? '' : 'none';
+    });
+  });
+});
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  if (window.innerWidth <= 768) {
+    sidebar.classList.toggle('mobile-open');
+    let overlay = document.getElementById('sidebar-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sidebar-overlay';
+      overlay.className = 'sidebar-overlay';
+      overlay.onclick = toggleSidebar;
+      document.body.appendChild(overlay);
+    }
+    overlay.classList.toggle('active');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    const topbar = document.querySelector('.topbar');
+    if (topbar) topbar.classList.toggle('sidebar-collapsed');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('af_token');
+  localStorage.removeItem('af_user');
+  window.location.href = '../../views/auth/login.html';
+}
+
+const user = JSON.parse(localStorage.getItem('af_user') || '{}');
+if (user.first_name) {
+  document.getElementById('user-display-name').textContent = user.first_name + ' ' + (user.last_name || '');
+  document.getElementById('user-initials').textContent = (user.first_name[0] + (user.last_name?.[0] || '')).toUpperCase();
+  document.getElementById('user-role-display').textContent = user.role || 'viewer';
+}
+
+/* Try to show cached AI signals; fall back to demo */
+(function loadSignals() {
+  let signals = DEMO_SIGNALS;
+  if (typeof AF_AI !== 'undefined') {
+    const cached = AF_AI.getCachedSignals();
+    if (cached && cached.length) {
+      // Convert bulk-cache format → dashboard signal format
+      const converted = cached
+        .filter(r => !r._failed && r.recommendation)
+        .slice(0, 6)
+        .map(r => ({
+          id: r.symbol,
+          symbol: r.symbol,
+          signal: r.recommendation,
+          strength: r.confidence >= 80 ? 'strong' : r.confidence >= 60 ? 'moderate' : 'weak',
+          confidence_score: r.confidence ?? 50,
+          entry_price: r.entry_price ?? 0,
+          target_price_1: r.target_base ?? r.target_conservative ?? 0,
+          stop_loss: r.stop_loss ?? 0,
+          risk_reward_ratio: (() => {
+            if (!r.entry_price || !r.stop_loss || !r.target_base) return 0;
+            const reward = Math.abs(r.target_base - r.entry_price);
+            const risk   = Math.abs(r.entry_price - r.stop_loss);
+            return risk > 0 ? +(reward / risk).toFixed(2) : 0;
+          })(),
+          reasoning: r.reasoning || '',
+          timeframe: r.time_horizon || 'Corto Plazo',
+        }));
+      if (converted.length) signals = converted;
+    }
+  }
+  renderSignals(signals);
+})();
+
+renderWatchlist(DEMO_WATCHLIST);
+renderNews(DEMO_NEWS);
+renderPortfolioChart();
+renderSparklines();
+renderFearGreed(72);
+updateMarketStatus();
+document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES');
+
+/* Live market data */
+if (typeof AF_MD !== 'undefined') AF_MD.init();
+
+setInterval(() => {
+  updateMarketStatus();
+  document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES');
+}, 60000);
+</script>
+</body>
+</html>

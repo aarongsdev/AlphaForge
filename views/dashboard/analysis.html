@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis — AlphaForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../../assets/css/main.css">
+<link rel="stylesheet" href="../../assets/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="../../assets/js/ai-analysis.js"></script>
+<style>
+/* ========== ANALYSIS PAGE SPECIFIC STYLES ========== */
+
+/* Analysis header */
+.analysis-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.analysis-header h1 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.symbol-selector-wrapper {
+  position: relative;
+}
+.symbol-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #141d35;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9375rem;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  transition: background 0.2s, border-color 0.2s;
+}
+.symbol-selector-btn:hover {
+  background: rgba(37,99,235,0.1);
+}
+.symbol-selector-btn .symbol-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  margin-right: 0.25rem;
+}
+.symbol-selector-btn .chevron {
+  font-size: 0.625rem;
+  color: #94a3b8;
+  margin-left: 0.25rem;
+}
+.symbol-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: #0f1629;
+  border: 1px solid #1e2d4d;
+  border-radius: 10px;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  z-index: 100;
+  display: none;
+  overflow: hidden;
+}
+.symbol-dropdown.open {
+  display: block;
+}
+.symbol-dropdown-search {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  background: #141d35;
+  border: none;
+  border-bottom: 1px solid #1e2d4d;
+  color: #e2e8f0;
+  font-size: 0.8125rem;
+  outline: none;
+  box-sizing: border-box;
+}
+.symbol-dropdown-search::placeholder {
+  color: #64748b;
+}
+.symbol-option {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.875rem;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  transition: background 0.15s, color 0.15s;
+}
+.symbol-option:hover {
+  background: rgba(37,99,235,0.12);
+  color: #e2e8f0;
+}
+.symbol-option .opt-sym {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 52px;
+}
+.symbol-option .opt-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.btn-generate-signal {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5625rem 1.25rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn-generate-signal:hover {
+  background: #1d4ed8;
+}
+.btn-generate-signal:active {
+  transform: scale(0.98);
+}
+
+/* Tab navigation */
+.tab-nav {
+  display: flex;
+  gap: 0.375rem;
+  margin-bottom: 1.5rem;
+  background: #0f1629;
+  border: 1px solid #1e2d4d;
+  border-radius: 10px;
+  padding: 0.375rem;
+  width: fit-content;
+}
+.tab-btn {
+  padding: 0.4375rem 1.125rem;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  color: #e2e8f0;
+  border-color: #1e2d4d;
+}
+.tab-btn.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+/* Tab content panels */
+.tab-panel {
+  display: none;
+}
+.tab-panel.active {
+  display: block;
+}
+
+/* Chart toolbar */
+.chart-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.timeframe-btns {
+  display: flex;
+  gap: 0.25rem;
+}
+.tf-btn {
+  padding: 0.3125rem 0.75rem;
+  background: transparent;
+  border: 1px solid #1e2d4d;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tf-btn:hover, .tf-btn.active {
+  background: rgba(37,99,235,0.12);
+  border-color: #2563eb;
+  color: #2563eb;
+}
+.indicator-toggles {
+  display: flex;
+  gap: 0.25rem;
+}
+.ind-btn {
+  padding: 0.3125rem 0.75rem;
+  background: rgba(37,99,235,0.08);
+  border: 1px solid rgba(37,99,235,0.25);
+  border-radius: 6px;
+  color: #2563eb;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ind-btn:hover {
+  background: rgba(37,99,235,0.18);
+}
+.ind-btn.off {
+  background: transparent;
+  border-color: #1e2d4d;
+  color: #64748b;
+}
+
+/* Price chart container */
+#price-chart {
+  width: 100%;
+  height: 500px;
+  background: #0a0e1a;
+  border: 1px solid #1e2d4d;
+  border-top: none;
+  border-bottom: none;
+}
+
+/* Indicators table */
+.indicators-section {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.indicators-section-title {
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  border-bottom: 1px solid #1e2d4d;
+  background: #0f1629;
+}
+.indicators-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.indicators-table th {
+  padding: 0.5rem 1rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  text-align: left;
+  border-bottom: 1px solid #1e2d4d;
+}
+.indicators-table th:last-child {
+  text-align: center;
+}
+.indicators-table td {
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(30,45,77,0.5);
+}
+.indicators-table tr:last-child td {
+  border-bottom: none;
+}
+.indicators-table tr:hover td {
+  background: rgba(37,99,235,0.04);
+}
+.indicators-table td:nth-child(2) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+.indicators-table td:last-child {
+  text-align: center;
+}
+
+/* Signal badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem 0.625rem;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.badge-buy {
+  background: rgba(16,185,129,0.12);
+  color: #10b981;
+  border: 1px solid rgba(16,185,129,0.3);
+}
+.badge-sell {
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.3);
+}
+.badge-neutral {
+  background: rgba(245,158,11,0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.badge-trend {
+  background: rgba(37,99,235,0.12);
+  color: #2563eb;
+  border: 1px solid rgba(37,99,235,0.3);
+}
+.badge-large {
+  padding: 0.4375rem 1.25rem;
+  font-size: 0.875rem;
+  border-radius: 8px;
+}
+
+/* Mini charts row */
+.mini-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.mini-chart-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1rem;
+}
+.mini-chart-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mini-chart-canvas-wrap {
+  position: relative;
+  height: 100px;
+}
+
+/* ========== FUNDAMENTAL TAB ========== */
+.fundamental-section {
+  margin-bottom: 1.5rem;
+}
+.fundamental-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.875rem;
+}
+.valuation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.val-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.125rem;
+}
+.val-card .val-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+}
+.val-card .val-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.25rem;
+}
+.val-card .val-value.green { color: #10b981; }
+.val-card .val-value.yellow { color: #f59e0b; }
+.val-card .val-compare {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.val-card .val-compare span {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Financial health */
+.health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.health-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.125rem;
+}
+.health-card .h-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+}
+.health-card .h-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.25rem;
+}
+.health-card .h-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.625rem;
+}
+.progress-bar-wrap {
+  height: 6px;
+  background: #1e2d4d;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #2563eb;
+  transition: width 0.6s ease;
+}
+
+/* Revenue chart card */
+.revenue-chart-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.revenue-chart-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ========== SENTIMIENTO TAB ========== */
+.sentiment-overview-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.sentiment-overview-card h3 {
+  margin: 0 0 1.25rem 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.sentiment-overview {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+.sentiment-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 4px solid #10b981;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16,185,129,0.06);
+  flex-shrink: 0;
+  box-shadow: 0 0 30px rgba(16,185,129,0.15);
+}
+.sentiment-score {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10b981;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+.sentiment-label {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+  margin-top: 0.25rem;
+}
+.sentiment-platforms {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+.platform-row {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+.platform-name {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  width: 90px;
+  flex-shrink: 0;
+}
+.platform-bar-outer {
+  flex: 1;
+  height: 8px;
+  background: #1e2d4d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.platform-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #10b981;
+  transition: width 0.6s ease;
+}
+.platform-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #10b981;
+  font-family: 'JetBrains Mono', monospace;
+  width: 44px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.sentiment-trend-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.sentiment-trend-card h3 {
+  margin: 0 0 0.875rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.sentiment-trend-canvas {
+  position: relative;
+  height: 150px;
+}
+.news-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+.news-item-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color 0.2s;
+}
+.news-item-card:hover {
+  border-color: #2563eb;
+}
+.news-item-card.positive {
+  border-left: 3px solid #10b981;
+}
+.news-item-card.negative {
+  border-left: 3px solid #ef4444;
+}
+.news-item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+.news-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+.news-item-chip {
+  padding: 0.125rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.news-item-chip.positive {
+  background: rgba(16,185,129,0.1);
+  color: #10b981;
+}
+.news-item-chip.negative {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+
+/* ========== REPORTE TAB ========== */
+.reporte-top {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  align-items: start;
+}
+.composite-gauge-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.composite-gauge {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 6px solid #10b981;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16,185,129,0.06);
+  box-shadow: 0 0 40px rgba(16,185,129,0.18);
+}
+.gauge-score {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+}
+.gauge-score span {
+  font-size: 1rem;
+  color: #64748b;
+}
+.gauge-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.recommendation-card {
+  background: #141d35;
+  border: 1px solid #10b981;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.rec-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.125rem;
+}
+.rec-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+.rec-confidence {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+.rec-confidence span {
+  color: #10b981;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+.rec-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rec-breakdown-table th {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid #1e2d4d;
+}
+.rec-breakdown-table th:last-child {
+  text-align: center;
+}
+.rec-breakdown-table td {
+  padding: 0.5rem 0.5rem;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(30,45,77,0.5);
+}
+.rec-breakdown-table tr:last-child td {
+  border-bottom: none;
+}
+.rec-breakdown-table td:nth-child(2) {
+  font-family: 'JetBrains Mono', monospace;
+  color: #94a3b8;
+}
+.rec-breakdown-table td:last-child {
+  text-align: center;
+}
+
+/* Price targets */
+.price-targets-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.price-target-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.price-target-card:hover {
+  border-color: #2563eb;
+}
+.price-target-card.base {
+  border-color: #2563eb;
+  background: rgba(37,99,235,0.06);
+}
+.pt-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.pt-price {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.25rem;
+}
+.pt-change {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* Risks section */
+.risks-card {
+  background: #141d35;
+  border: 1px solid #1e2d4d;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.risks-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.risks-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.risks-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.risks-list li::before {
+  content: '\25B8';
+  color: #ef4444;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Toast notification */
+.toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+.toast {
+  background: #141d35;
+  border: 1px solid #10b981;
+  border-radius: 10px;
+  padding: 0.875rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastIn 0.3s ease;
+  pointer-events: all;
+  min-width: 280px;
+  max-width: 420px;
+}
+.toast .toast-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.toast.toast-hide {
+  animation: toastOut 0.3s ease forwards;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .valuation-grid    { grid-template-columns: repeat(2, 1fr); }
+  .health-grid       { grid-template-columns: 1fr 1fr; }
+  .reporte-top       { grid-template-columns: 1fr; }
+  .composite-gauge-wrap { flex-direction: row; align-items: center; }
+}
+@media (max-width: 768px) {
+  .analysis-header   { flex-direction: column; align-items: flex-start; }
+  .valuation-grid    { grid-template-columns: 1fr; }
+  .health-grid       { grid-template-columns: 1fr; }
+  .mini-charts-row   { grid-template-columns: 1fr; }
+  .price-targets-row { grid-template-columns: 1fr; }
+  .news-items        { grid-template-columns: 1fr; }
+  .tab-nav           { width: 100%; overflow-x: auto; }
+  .sentiment-overview { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+     ============================================================ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="#2563eb" opacity="0.2" stroke="#2563eb" stroke-width="1.5"/>
+      <text x="16" y="21" text-anchor="middle" fill="#2563eb" font-size="11" font-weight="700" font-family="Inter">AF</text>
+    </svg>
+    <span class="brand-text">AlphaForge</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      Dashboard
+    </a>
+    <a href="signals.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Señales IA
+    </a>
+    <a href="portfolio.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6"  y1="20" x2="6"  y2="14"/>
+      </svg>
+      Portfolio
+    </a>
+    <a href="analysis.html" class="nav-item active">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      Análisis
+    </a>
+    <a href="backtesting.html" class="nav-item">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-3.1"/>
+      </svg>
+      Backtesting
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="user-initials">U</div>
+      <div class="user-details">
+        <div class="user-name" id="user-display-name">Usuario</div>
+        <div class="user-role" id="user-role-display">viewer</div>
+      </div>
+    </div>
+    <button onclick="logout()" class="logout-btn" title="Cerrar sesión">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+<header class="topbar">
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <div class="search-wrapper" style="position:relative;flex:1;max-width:400px;">
+    <input
+      type="text"
+      id="global-search"
+      class="global-search"
+      placeholder="Buscar símbolo... AAPL, BTC, SPY"
+      autocomplete="off"
+      style="width:100%;padding:0.5rem 1rem;background:#0f1629;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;box-sizing:border-box;"
+    >
+  </div>
+  <div class="topbar-tickers" id="market-tickers" style="display:flex;gap:1.5rem;align-items:center;">
+    <div class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;">
+      <span style="color:#64748b;">S&amp;P500</span>
+      <span style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">5,234.18</span>
+      <span style="color:#10b981;">+0.43%</span>
+    </div>
+    <div class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;">
+      <span style="color:#64748b;">NASDAQ</span>
+      <span style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">18,421.31</span>
+      <span style="color:#10b981;">+0.61%</span>
+    </div>
+    <div class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;">
+      <span style="color:#64748b;">BTC</span>
+      <span style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">67,842</span>
+      <span style="color:#ef4444;">-1.24%</span>
+    </div>
+  </div>
+  <div class="topbar-actions" style="display:flex;align-items:center;gap:1rem;">
+    <div style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:#94a3b8;">
+      <span id="status-dot" style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse 2s infinite;"></span>
+      <span id="market-status-label">MERCADO ABIERTO</span>
+    </div>
+  </div>
+</header>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- API Key Modal -->
+<div class="modal-backdrop" id="api-key-modal" style="z-index:1000;display:none;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:#0f1629;border:1px solid #1e2d4d;border-radius:16px;width:100%;max-width:460px;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:1.5rem 1.5rem 1rem;border-bottom:1px solid #1e2d4d;">
+      <div>
+        <div style="font-size:1.125rem;font-weight:700;color:#e2e8f0;">Configurar Claude API Key</div>
+        <div style="font-size:0.8125rem;color:#64748b;margin-top:0.25rem;">Necesaria para el análisis IA real</div>
+      </div>
+      <button onclick="closeApiKeyModal()" style="width:32px;height:32px;border-radius:8px;border:1px solid #1e2d4d;background:#141d35;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.125rem;">×</button>
+    </div>
+    <div style="padding:1.25rem 1.5rem 1.5rem;">
+      <p style="font-size:0.875rem;color:#94a3b8;line-height:1.65;margin:0 0 1rem;">AlphaForge usa la API de Claude (Anthropic) para generar análisis reales de compra/venta. Tu API key se guarda solo en tu navegador y nunca se envía a nuestros servidores.</p>
+      <label style="display:block;font-size:0.8125rem;font-weight:600;color:#94a3b8;margin-bottom:0.5rem;">API Key de Anthropic</label>
+      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..."
+        style="width:100%;padding:0.75rem 1rem;background:#141d35;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;font-family:'JetBrains Mono',monospace;box-sizing:border-box;margin-bottom:1rem;"
+        onkeydown="if(event.key==='Enter') saveApiKeyFromModal()">
+      <div style="display:flex;gap:0.75rem;">
+        <button onclick="saveApiKeyFromModal()" style="flex:1;padding:0.75rem;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:0.9375rem;font-weight:600;cursor:pointer;">Guardar y Analizar</button>
+        <button onclick="closeApiKeyModal()" style="padding:0.75rem 1.25rem;background:transparent;border:1px solid #1e2d4d;border-radius:8px;color:#94a3b8;font-size:0.9375rem;cursor:pointer;">Cancelar</button>
+      </div>
+      <p style="font-size:0.75rem;color:#475569;margin-top:0.875rem;text-align:center;">Obtén tu API key gratis en console.anthropic.com</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+<main class="main-content" style="padding:2rem;max-width:1600px;margin:0 auto;">
+
+  <!-- ── Analysis Header ── -->
+  <div class="analysis-header">
+    <h1>Análisis Técnico</h1>
+
+    <!-- Symbol Selector -->
+    <div class="symbol-selector-wrapper" id="symbol-selector-wrapper">
+      <button class="symbol-selector-btn" id="symbol-selector-btn" onclick="toggleSymbolDropdown()">
+        <span class="symbol-label">Analizando:</span>
+        <span id="active-symbol">AAPL</span>
+        <span class="chevron">&#9660;</span>
+      </button>
+      <div class="symbol-dropdown" id="symbol-dropdown">
+        <input
+          type="text"
+          class="symbol-dropdown-search"
+          id="symbol-search-input"
+          placeholder="Buscar símbolo..."
+          oninput="filterSymbols(this.value)"
+          autocomplete="off"
+        >
+        <div id="symbol-options-list">
+          <div class="symbol-option" onclick="selectSymbol('AAPL')">
+            <span class="opt-sym">AAPL</span><span class="opt-name">Apple Inc.</span>
+          </div>
+          <div class="symbol-option" onclick="selectSymbol('NVDA')">
+            <span class="opt-sym">NVDA</span><span class="opt-name">NVIDIA Corp.</span>
+          </div>
+          <div class="symbol-option" onclick="selectSymbol('MSFT')">
+            <span class="opt-sym">MSFT</span><span class="opt-name">Microsoft Corp.</span>
+          </div>
+          <div class="symbol-option" onclick="selectSymbol('TSLA')">
+            <span class="opt-sym">TSLA</span><span class="opt-name">Tesla Inc.</span>
+          </div>
+          <div class="symbol-option" onclick="selectSymbol('BTC')">
+            <span class="opt-sym">BTC</span><span class="opt-name">Bitcoin / USD</span>
+          </div>
+          <div class="symbol-option" onclick="selectSymbol('ETH')">
+            <span class="opt-sym">ETH</span><span class="opt-name">Ethereum / USD</span>
+          </div>
+          <div class="symbol-option" onclick="selectSymbol('GOOGL')">
+            <span class="opt-sym">GOOGL</span><span class="opt-name">Alphabet Inc.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generate Signal -->
+    <button class="btn-generate-signal" onclick="generateSignal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+      Generar Señal IA
+    </button>
+  </div>
+
+  <!-- ── Tab Navigation ── -->
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="tecnico"      onclick="switchTab('tecnico')">Técnico</button>
+    <button class="tab-btn"        data-tab="fundamental"  onclick="switchTab('fundamental')">Fundamental</button>
+    <button class="tab-btn"        data-tab="sentimiento"  onclick="switchTab('sentimiento')">Sentimiento</button>
+    <button class="tab-btn"        data-tab="reporte"      onclick="switchTab('reporte')">Reporte</button>
+  </div>
+
+  <!-- ================================================================
+       TAB 1 — TÉCNICO
+       ================================================================ -->
+  <div class="tab-panel active" id="tab-tecnico">
+
+    <!-- Chart toolbar -->
+    <div class="chart-toolbar">
+      <div class="timeframe-btns">
+        <button class="tf-btn active" onclick="setTimeframe(this,'1D')">1D</button>
+        <button class="tf-btn"        onclick="setTimeframe(this,'1W')">1W</button>
+        <button class="tf-btn"        onclick="setTimeframe(this,'1M')">1M</button>
+        <button class="tf-btn"        onclick="setTimeframe(this,'3M')">3M</button>
+        <button class="tf-btn"        onclick="setTimeframe(this,'1Y')">1Y</button>
+      </div>
+      <div class="indicator-toggles">
+        <button class="ind-btn"     id="ind-MA"   onclick="toggleIndicator('MA')">MA</button>
+        <button class="ind-btn"     id="ind-BB"   onclick="toggleIndicator('BB')">BB</button>
+        <button class="ind-btn off" id="ind-RSI"  onclick="toggleIndicator('RSI')">RSI</button>
+        <button class="ind-btn off" id="ind-MACD" onclick="toggleIndicator('MACD')">MACD</button>
+      </div>
+    </div>
+
+    <!-- Candlestick price chart -->
+    <div id="price-chart"></div>
+
+    <!-- Indicators table -->
+    <div class="indicators-section">
+      <div class="indicators-section-title">Indicadores Técnicos</div>
+      <table class="indicators-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Valor</th>
+            <th>Señal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RSI (14)</td>
+            <td>42.3</td>
+            <td><span class="badge badge-neutral">Neutral</span></td>
+          </tr>
+          <tr>
+            <td>MACD</td>
+            <td>Cruce Alcista</td>
+            <td><span class="badge badge-buy">BUY</span></td>
+          </tr>
+          <tr>
+            <td>EMA 50/200</td>
+            <td>Golden Cross</td>
+            <td><span class="badge badge-buy">BUY</span></td>
+          </tr>
+          <tr>
+            <td>Bollinger Bands</td>
+            <td>Precio en Media</td>
+            <td><span class="badge badge-neutral">Neutral</span></td>
+          </tr>
+          <tr>
+            <td>Stochastic</td>
+            <td>38.5</td>
+            <td><span class="badge badge-neutral">Neutral</span></td>
+          </tr>
+          <tr>
+            <td>ADX</td>
+            <td>28.4 — Trending</td>
+            <td><span class="badge badge-trend">Tendencia</span></td>
+          </tr>
+          <tr>
+            <td>Volumen</td>
+            <td>Por Encima Prom.</td>
+            <td><span class="badge badge-buy">BUY</span></td>
+          </tr>
+          <tr>
+            <td>Ichimoku</td>
+            <td>Sobre Nube</td>
+            <td><span class="badge badge-buy">BUY</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mini RSI + MACD charts -->
+    <div class="mini-charts-row">
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">RSI (14)</div>
+        <div class="mini-chart-canvas-wrap">
+          <canvas id="rsi-chart"></canvas>
+        </div>
+      </div>
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">MACD Histograma</div>
+        <div class="mini-chart-canvas-wrap">
+          <canvas id="macd-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END tab-tecnico -->
+
+
+  <!-- ================================================================
+       TAB 2 — FUNDAMENTAL
+       ================================================================ -->
+  <div class="tab-panel" id="tab-fundamental">
+
+    <!-- Valuation grid -->
+    <div class="fundamental-section">
+      <div class="fundamental-section-title">Métricas de Valoración</div>
+      <div class="valuation-grid">
+        <div class="val-card">
+          <div class="val-label">P/E Ratio</div>
+          <div class="val-value yellow">27.3x</div>
+          <div class="val-compare">vs Sector <span>22.1x</span> — Ligeramente elevado</div>
+        </div>
+        <div class="val-card">
+          <div class="val-label">P/B Ratio</div>
+          <div class="val-value yellow">45.2x</div>
+          <div class="val-compare">vs Sector <span>8.3x</span> — Muy elevado</div>
+        </div>
+        <div class="val-card">
+          <div class="val-label">EV/EBITDA</div>
+          <div class="val-value">21.1x</div>
+          <div class="val-compare">Valoración razonable para tech</div>
+        </div>
+        <div class="val-card">
+          <div class="val-label">PEG Ratio</div>
+          <div class="val-value">1.42</div>
+          <div class="val-compare">Bajo 1.5 — <span>Fair Value</span></div>
+        </div>
+        <div class="val-card">
+          <div class="val-label">FCF Yield</div>
+          <div class="val-value green">3.8%</div>
+          <div class="val-compare">Generación de caja sólida</div>
+        </div>
+        <div class="val-card">
+          <div class="val-label">Dividendo</div>
+          <div class="val-value">0.54%</div>
+          <div class="val-compare">Yield bajo — enfoque en recompras</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial health -->
+    <div class="fundamental-section">
+      <div class="fundamental-section-title">Salud Financiera</div>
+      <div class="health-grid">
+        <div class="health-card">
+          <div class="h-label">Altman Z-Score</div>
+          <div class="h-value">4.2</div>
+          <div class="h-sub" style="color:#10b981;">Safe Zone (&gt;3.0)</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:70%;background:#10b981;"></div>
+          </div>
+        </div>
+        <div class="health-card">
+          <div class="h-label">Quick Ratio</div>
+          <div class="h-value">0.98</div>
+          <div class="h-sub">Liquidez ajustada — adecuada</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:49%;background:#f59e0b;"></div>
+          </div>
+        </div>
+        <div class="health-card">
+          <div class="h-label">Deuda / Equity</div>
+          <div class="h-value">1.73</div>
+          <div class="h-sub">Apalancamiento moderado-alto</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:57%;background:#f59e0b;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue chart -->
+    <div class="revenue-chart-card">
+      <h3>Crecimiento de Ingresos (Billones USD)</h3>
+      <canvas id="revenue-chart" height="200"></canvas>
+    </div>
+
+    <!-- Key margins -->
+    <div style="background:#141d35;border:1px solid #1e2d4d;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+      <h3 style="margin:0 0 1rem 0;font-size:0.9375rem;font-weight:600;color:#e2e8f0;">Márgenes Clave</h3>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+        <div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Margen Bruto</div>
+          <div style="font-size:1.25rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">44.1%</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Margen Operativo</div>
+          <div style="font-size:1.25rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">29.8%</div>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Margen Neto</div>
+          <div style="font-size:1.25rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">25.3%</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END tab-fundamental -->
+
+
+  <!-- ================================================================
+       TAB 3 — SENTIMIENTO
+       ================================================================ -->
+  <div class="tab-panel" id="tab-sentimiento">
+
+    <!-- Overall sentiment score -->
+    <div class="sentiment-overview-card">
+      <h3>Sentimiento General — AAPL</h3>
+      <div class="sentiment-overview">
+        <div class="sentiment-circle">
+          <div class="sentiment-score">+0.72</div>
+          <div class="sentiment-label">Sentimiento<br>Positivo</div>
+        </div>
+        <div>
+          <div style="font-size:0.8125rem;color:#64748b;margin-bottom:1rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:600;">Desglose por Plataforma</div>
+          <div class="sentiment-platforms">
+            <div class="platform-row">
+              <div class="platform-name">Twitter/X</div>
+              <div class="platform-bar-outer">
+                <div class="platform-bar-fill" style="width:81%;"></div>
+              </div>
+              <div class="platform-value">+0.81</div>
+            </div>
+            <div class="platform-row">
+              <div class="platform-name">Reddit</div>
+              <div class="platform-bar-outer">
+                <div class="platform-bar-fill" style="width:68%;"></div>
+              </div>
+              <div class="platform-value">+0.68</div>
+            </div>
+            <div class="platform-row">
+              <div class="platform-name">Noticias</div>
+              <div class="platform-bar-outer">
+                <div class="platform-bar-fill" style="width:65%;"></div>
+              </div>
+              <div class="platform-value">+0.65</div>
+            </div>
+            <div class="platform-row">
+              <div class="platform-name">Analistas</div>
+              <div class="platform-bar-outer">
+                <div class="platform-bar-fill" style="width:74%;"></div>
+              </div>
+              <div class="platform-value">+0.74</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7-day trend chart -->
+    <div class="sentiment-trend-card">
+      <h3>Tendencia de Sentimiento — Últimos 7 Días</h3>
+      <div class="sentiment-trend-canvas">
+        <canvas id="sentiment-trend"></canvas>
+      </div>
+    </div>
+
+    <!-- News items -->
+    <div style="font-size:0.875rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.875rem;">Noticias Recientes</div>
+    <div class="news-items">
+      <div class="news-item-card positive">
+        <div class="news-item-title">NVIDIA supera expectativas con ingresos de $22.1B impulsados por demanda de chips IA en centros de datos</div>
+        <div class="news-item-meta">
+          <span class="news-item-chip positive">Positivo</span>
+          <span>Reuters</span>
+          <span>Hace 2h</span>
+        </div>
+      </div>
+      <div class="news-item-card positive">
+        <div class="news-item-title">Fed mantiene tasas sin cambios y señala posibles recortes si la inflación sigue moderándose en los próximos meses</div>
+        <div class="news-item-meta">
+          <span class="news-item-chip positive">Positivo</span>
+          <span>Bloomberg</span>
+          <span>Hace 4h</span>
+        </div>
+      </div>
+      <div class="news-item-card positive">
+        <div class="news-item-title">Apple planea inversión de $500M en manufactura local en EEUU para reducir dependencia de proveedores asiáticos</div>
+        <div class="news-item-meta">
+          <span class="news-item-chip positive">Positivo</span>
+          <span>WSJ</span>
+          <span>Hace 5h</span>
+        </div>
+      </div>
+      <div class="news-item-card negative">
+        <div class="news-item-title">Bitcoin cae 3% tras señales restrictivas de reguladores en Asia; mercado cripto bajo presión generalizada</div>
+        <div class="news-item-meta">
+          <span class="news-item-chip negative">Negativo</span>
+          <span>CoinDesk</span>
+          <span>Hace 1h</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analyst consensus -->
+    <div style="background:#141d35;border:1px solid #1e2d4d;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+      <h3 style="margin:0 0 1rem 0;font-size:0.9375rem;font-weight:600;color:#e2e8f0;">Consenso de Analistas</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;text-align:center;">
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">28</div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;margin-top:0.25rem;">Comprar</div>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#f59e0b;font-family:'JetBrains Mono',monospace;">8</div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;margin-top:0.25rem;">Neutral</div>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#ef4444;font-family:'JetBrains Mono',monospace;">3</div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;margin-top:0.25rem;">Vender</div>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">$214</div>
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;margin-top:0.25rem;">Precio Objetivo</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END tab-sentimiento -->
+
+
+  <!-- ================================================================
+       TAB 4 — REPORTE
+       ================================================================ -->
+  <div class="tab-panel" id="tab-reporte">
+
+    <!-- Composite score + recommendation -->
+    <div class="reporte-top">
+      <div class="composite-gauge-wrap">
+        <div class="composite-gauge" id="composite-gauge-el">
+          <div class="gauge-score" id="gauge-score-val">78<span>/100</span></div>
+        </div>
+        <div class="gauge-label">Puntuación Compuesta</div>
+      </div>
+      <div class="recommendation-card" id="rec-card-el">
+        <div class="rec-header">
+          <span class="badge badge-buy badge-large" id="rec-badge-el">BUY</span>
+          <h2 class="rec-title" id="rec-title-el">COMPRAR AAPL</h2>
+        </div>
+        <div class="rec-confidence">
+          Nivel de Confianza: <span id="rec-conf-span">84%</span>
+        </div>
+        <table class="rec-breakdown-table">
+          <thead>
+            <tr>
+              <th>Categoría</th>
+              <th>Puntuación</th>
+              <th>Señal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Técnico</td>
+              <td id="rec-tech-score">82 / 100</td>
+              <td id="rec-tech-badge"><span class="badge badge-buy">BUY</span></td>
+            </tr>
+            <tr>
+              <td>Fundamental</td>
+              <td id="rec-fund-score">71 / 100</td>
+              <td id="rec-fund-badge"><span class="badge badge-neutral">Neutral</span></td>
+            </tr>
+            <tr>
+              <td>Sentimiento</td>
+              <td id="rec-sent-score">78 / 100</td>
+              <td id="rec-sent-badge"><span class="badge badge-buy">BUY</span></td>
+            </tr>
+            <tr>
+              <td>Momentum</td>
+              <td id="rec-mom-score">85 / 100</td>
+              <td id="rec-mom-badge"><span class="badge badge-buy">BUY</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Price targets -->
+    <div style="font-size:0.875rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.875rem;">Objetivos de Precio</div>
+    <div class="price-targets-row">
+      <div class="price-target-card">
+        <div class="pt-label">Conservador</div>
+        <div class="pt-price" id="pt-conservative">$195.00</div>
+        <div class="pt-change" id="pt-conservative-chg">+6.8% desde $182.50</div>
+      </div>
+      <div class="price-target-card base">
+        <div class="pt-label" style="color:#2563eb;">Base &#9733;</div>
+        <div class="pt-price" id="pt-base">$210.00</div>
+        <div class="pt-change" id="pt-base-chg">+15.1% desde $182.50</div>
+      </div>
+      <div class="price-target-card">
+        <div class="pt-label">Optimista</div>
+        <div class="pt-price" id="pt-optimistic">$225.00</div>
+        <div class="pt-change" id="pt-optimistic-chg">+23.3% desde $182.50</div>
+      </div>
+    </div>
+
+    <!-- Risk factors -->
+    <div class="risks-card">
+      <h3>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9"  x2="12"   y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Riesgos Clave
+      </h3>
+      <ul class="risks-list" id="reporte-risks-list">
+        <li>Riesgo regulatorio antitrust en Europa y EEUU — posible impacto en App Store y servicios de pago</li>
+        <li>Desaceleración en ventas iPhone en China (-14% YoY) — mercado más competitivo con Huawei</li>
+        <li>Competencia creciente en servicios de streaming y contenido digital</li>
+        <li>Riesgo de tasas de interés: mayor duración impacta la valoración del múltiplo P/E</li>
+        <li>Supply chain concentrada en Asia — vulnerabilidad geopolítica y riesgo logístico</li>
+      </ul>
+    </div>
+
+    <!-- Position parameters -->
+    <div style="background:#141d35;border:1px solid #1e2d4d;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+      <h3 style="margin:0 0 1rem 0;font-size:0.9375rem;font-weight:600;color:#e2e8f0;">Parámetros de la Posición</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;">
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Entrada</div>
+          <div id="pos-entry" style="font-size:1.125rem;font-weight:700;color:#e2e8f0;font-family:'JetBrains Mono',monospace;">$182.50</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Stop Loss</div>
+          <div id="pos-stop" style="font-size:1.125rem;font-weight:700;color:#ef4444;font-family:'JetBrains Mono',monospace;">$175.00</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">Target</div>
+          <div id="pos-target" style="font-size:1.125rem;font-weight:700;color:#10b981;font-family:'JetBrains Mono',monospace;">$210.00</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.25rem;">R/R Ratio</div>
+          <div id="pos-rr" style="font-size:1.125rem;font-weight:700;color:#2563eb;font-family:'JetBrains Mono',monospace;">3.67x</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Summary (populated after analysis) -->
+    <div id="ai-summary-card" style="background:#141d35;border:1px solid #1e2d4d;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;display:none;">
+      <h3 style="margin:0 0 0.75rem 0;font-size:0.9375rem;font-weight:600;color:#e2e8f0;display:flex;align-items:center;gap:0.5rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+        </svg>
+        Resumen Ejecutivo IA
+        <span id="ai-time-horizon" style="font-size:0.75rem;font-weight:500;color:#94a3b8;background:#0f1629;border:1px solid #1e2d4d;padding:0.2rem 0.625rem;border-radius:20px;"></span>
+      </h3>
+      <p id="ai-summary-text" style="font-size:0.875rem;color:#94a3b8;line-height:1.7;margin:0 0 0.875rem;"></p>
+      <div style="background:#0f1629;border:1px solid #1e2d4d;border-radius:8px;padding:0.875rem;">
+        <div style="font-size:0.6875rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.5rem;">Razonamiento del modelo</div>
+        <p id="ai-reasoning-text" style="font-size:0.8125rem;color:#94a3b8;line-height:1.6;margin:0;"></p>
+      </div>
+    </div>
+
+    <!-- Loading overlay for Reporte tab -->
+    <div id="reporte-loading" style="display:none;padding:3rem;text-align:center;color:#64748b;">
+      <div style="display:inline-flex;flex-direction:column;align-items:center;gap:1rem;">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" style="animation:spin 1s linear infinite;">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        <div style="font-size:0.9375rem;font-weight:500;">Consultando a Claude...</div>
+        <div style="font-size:0.8125rem;color:#475569;">Obteniendo datos de mercado y generando análisis</div>
+      </div>
+    </div>
+
+  </div>
+  <!-- END tab-reporte -->
+
+</main><!-- end .main-content -->
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+'use strict';
+
+// ── User init ──────────────────────────────────────────────────
+(function initUser() {
+  if (!localStorage.getItem('af_token')) {
+    localStorage.setItem('af_token', 'demo');
+    localStorage.setItem('af_user', JSON.stringify({
+      first_name: 'Demo', last_name: 'User', role: 'analyst'
+    }));
+  }
+  try {
+    var u = JSON.parse(localStorage.getItem('af_user') || '{}');
+    var name     = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || 'Usuario';
+    var initials = ((u.first_name || 'U')[0] + (u.last_name || '')[0]).toUpperCase();
+    var elN = document.getElementById('user-display-name');
+    var elI = document.getElementById('user-initials');
+    var elR = document.getElementById('user-role-display');
+    if (elN) elN.textContent = name;
+    if (elI) elI.textContent = initials || 'U';
+    if (elR) elR.textContent = u.role || 'viewer';
+  } catch (e) { /* silent */ }
+})();
+
+// ── Sidebar ────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  if (window.innerWidth <= 768) {
+    sidebar.classList.toggle('mobile-open');
+    let overlay = document.getElementById('sidebar-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'sidebar-overlay';
+      overlay.className = 'sidebar-overlay';
+      overlay.onclick = toggleSidebar;
+      document.body.appendChild(overlay);
+    }
+    overlay.classList.toggle('active');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    const topbar = document.querySelector('.topbar');
+    if (topbar) topbar.classList.toggle('sidebar-collapsed');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('af_token');
+  localStorage.removeItem('af_user');
+  window.location.href = '../../views/auth/login.html';
+}
+
+// ── Market status ──────────────────────────────────────────────
+function updateMarketStatus() {
+  var now = new Date();
+  var h   = now.getHours();
+  var day = now.getDay();
+  var isOpen = (day >= 1 && day <= 5) && (h >= 9 && h < 16);
+  var dot   = document.getElementById('status-dot');
+  var label = document.getElementById('market-status-label');
+  if (dot && label) {
+    dot.style.background  = isOpen ? '#10b981' : '#64748b';
+    dot.style.animation   = isOpen ? 'pulse 2s infinite' : 'none';
+    label.textContent     = isOpen ? 'MERCADO ABIERTO' : 'MERCADO CERRADO';
+  }
+}
+
+// ── Symbol selector ────────────────────────────────────────────
+var SYMBOL_DATA = [
+  { sym: 'AAPL',  name: 'Apple Inc.' },
+  { sym: 'NVDA',  name: 'NVIDIA Corp.' },
+  { sym: 'MSFT',  name: 'Microsoft Corp.' },
+  { sym: 'TSLA',  name: 'Tesla Inc.' },
+  { sym: 'BTC',   name: 'Bitcoin / USD' },
+  { sym: 'ETH',   name: 'Ethereum / USD' },
+  { sym: 'GOOGL', name: 'Alphabet Inc.' },
+];
+var currentSymbol = 'AAPL';
+
+function toggleSymbolDropdown() {
+  var dd = document.getElementById('symbol-dropdown');
+  if (!dd) return;
+  var isOpen = dd.classList.contains('open');
+  dd.classList.toggle('open');
+  if (!isOpen) {
+    var si = document.getElementById('symbol-search-input');
+    if (si) { si.value = ''; si.focus(); }
+    renderSymbolOptions('');
+  }
+}
+
+function renderSymbolOptions(filter) {
+  var list = document.getElementById('symbol-options-list');
+  if (!list) return;
+  var f = filter.toUpperCase();
+  var filtered = SYMBOL_DATA.filter(function(s) {
+    return s.sym.indexOf(f) >= 0 || s.name.toUpperCase().indexOf(f) >= 0;
+  });
+  list.innerHTML = filtered.map(function(s) {
+    return '<div class="symbol-option" onclick="selectSymbol(\'' + s.sym + '\')">' +
+           '<span class="opt-sym">' + s.sym + '</span>' +
+           '<span class="opt-name">' + s.name + '</span></div>';
+  }).join('');
+}
+
+function filterSymbols(val) {
+  renderSymbolOptions(val);
+}
+
+function selectSymbol(sym) {
+  currentSymbol = sym;
+  var el = document.getElementById('active-symbol');
+  if (el) el.textContent = sym;
+  var dd = document.getElementById('symbol-dropdown');
+  if (dd) dd.classList.remove('open');
+  showToast('Símbolo actualizado: ' + sym, 'info');
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  var wrapper = document.getElementById('symbol-selector-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    var dd = document.getElementById('symbol-dropdown');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+// ── Toast ──────────────────────────────────────────────────────
+function showToast(message, type) {
+  var container = document.getElementById('toast-container');
+  if (!container) return;
+  var toast = document.createElement('div');
+  toast.className = 'toast';
+  var borderColor = type === 'error' ? '#ef4444' : (type === 'info') ? '#2563eb' : '#10b981';
+  var iconColor   = type === 'error' ? '#ef4444' : (type === 'info') ? '#2563eb' : '#10b981';
+  toast.style.borderColor = borderColor;
+  toast.innerHTML =
+    '<span class="toast-icon" style="color:' + iconColor + ';">&#9889;</span>' +
+    '<span>' + message + '</span>';
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.classList.add('toast-hide');
+    setTimeout(function() {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 350);
+  }, 4200);
+}
+
+/* ── XSS helper ───────────────────────────────────────────── */
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = String(s ?? '');
+  return d.innerHTML;
+}
+
+/* ── API Key modal ────────────────────────────────────────── */
+var _apiKeyCallback = null;
+
+function showApiKeyModal(callback) {
+  _apiKeyCallback = callback || null;
+  var modal = document.getElementById('api-key-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+    var input = document.getElementById('api-key-input');
+    if (input) {
+      input.value = AF_AI.getApiKey();
+      input.style.borderColor = '#1e2d4d';
+      setTimeout(function() { input.focus(); }, 100);
+    }
+  }
+}
+
+function closeApiKeyModal() {
+  var modal = document.getElementById('api-key-modal');
+  if (modal) modal.style.display = 'none';
+  _apiKeyCallback = null;
+}
+
+function saveApiKeyFromModal() {
+  var input = document.getElementById('api-key-input');
+  var key = input ? input.value.trim() : '';
+  if (!key) {
+    if (input) input.style.borderColor = '#ef4444';
+    return;
+  }
+  AF_AI.saveApiKey(key);
+  closeApiKeyModal();
+  if (_apiKeyCallback) {
+    var cb = _apiKeyCallback;
+    _apiKeyCallback = null;
+    setTimeout(cb, 100);
+  }
+}
+
+/* ── Reporte loading state ────────────────────────────────── */
+function showReporteLoading(show) {
+  var loading  = document.getElementById('reporte-loading');
+  var content  = document.querySelector('#tab-reporte .reporte-top');
+  var priceRow = document.querySelector('#tab-reporte .price-targets-row');
+  var risksCard = document.querySelector('#tab-reporte .risks-card');
+  var posCard  = document.querySelector('#tab-reporte .risks-card + div');
+  var summary  = document.getElementById('ai-summary-card');
+  var targets  = document.getElementById('price-targets-label');
+
+  var mainEls = [content, priceRow, risksCard, posCard];
+  mainEls.forEach(function(el) {
+    if (el) el.style.opacity = show ? '0.3' : '1';
+  });
+  if (loading) loading.style.display = show ? 'block' : 'none';
+  if (!show && summary) summary.style.display = 'block';
+}
+
+/* ── Score → badge HTML ───────────────────────────────────── */
+function scoreBadgeHtml(score) {
+  if (score >= 65) return '<span class="badge badge-buy">BUY</span>';
+  if (score <= 40) return '<span class="badge badge-sell">SELL</span>';
+  return '<span class="badge badge-neutral">Neutral</span>';
+}
+
+/* ── Render AI report into Reporte tab ────────────────────── */
+function renderAIReport(sym, a, stockData) {
+  var cur = stockData ? stockData.currentPrice : null;
+  var fmt = function(v) { return v != null ? '$' + parseFloat(v).toFixed(2) : 'N/A'; };
+  var pctChg = function(v) {
+    if (v == null || !cur) return '';
+    var pct = ((v - cur) / cur * 100).toFixed(1);
+    return (pct >= 0 ? '+' : '') + pct + '% desde $' + cur.toFixed(2);
+  };
+
+  /* Composite gauge */
+  var scoreEl = document.getElementById('gauge-score-val');
+  if (scoreEl) scoreEl.innerHTML = esc(a.composite_score) + '<span>/100</span>';
+
+  var gaugeEl = document.getElementById('composite-gauge-el');
+  if (gaugeEl) {
+    var clr = a.composite_score >= 65 ? '#10b981' : a.composite_score >= 45 ? '#f59e0b' : '#ef4444';
+    var rgb = a.composite_score >= 65 ? '16,185,129' : a.composite_score >= 45 ? '245,158,11' : '239,68,68';
+    gaugeEl.style.borderColor = clr;
+    gaugeEl.style.background  = 'rgba(' + rgb + ',0.06)';
+    gaugeEl.style.boxShadow   = '0 0 40px rgba(' + rgb + ',0.18)';
+  }
+
+  /* Recommendation */
+  var recMap   = { BUY: 'badge-buy', SELL: 'badge-sell', HOLD: 'badge-neutral' };
+  var titleMap = { BUY: 'COMPRAR', SELL: 'VENDER', HOLD: 'MANTENER' };
+  var colorMap = { BUY: '#10b981', SELL: '#ef4444', HOLD: '#f59e0b' };
+
+  var badgeEl = document.getElementById('rec-badge-el');
+  if (badgeEl) {
+    badgeEl.className   = 'badge badge-large ' + (recMap[a.recommendation] || 'badge-neutral');
+    badgeEl.textContent = a.recommendation;
+  }
+  var titleEl = document.getElementById('rec-title-el');
+  if (titleEl) titleEl.textContent = (titleMap[a.recommendation] || a.recommendation) + ' ' + sym;
+
+  var recCard = document.getElementById('rec-card-el');
+  if (recCard) recCard.style.borderColor = colorMap[a.recommendation] || '#1e2d4d';
+
+  var confEl = document.getElementById('rec-conf-span');
+  if (confEl) confEl.textContent = a.confidence + '%';
+
+  /* Scores breakdown */
+  var scoreData = {
+    'rec-tech-score': a.technical_score,
+    'rec-fund-score': a.fundamental_score,
+    'rec-sent-score': a.sentiment_score,
+    'rec-mom-score':  a.momentum_score,
+  };
+  Object.keys(scoreData).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = scoreData[id] + ' / 100';
+  });
+  var badgeData = {
+    'rec-tech-badge': a.technical_score,
+    'rec-fund-badge': a.fundamental_score,
+    'rec-sent-badge': a.sentiment_score,
+    'rec-mom-badge':  a.momentum_score,
+  };
+  Object.keys(badgeData).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = scoreBadgeHtml(badgeData[id]);
+  });
+
+  /* Price targets */
+  var ptData = [
+    ['pt-conservative', 'pt-conservative-chg', a.target_conservative],
+    ['pt-base',         'pt-base-chg',          a.target_base],
+    ['pt-optimistic',   'pt-optimistic-chg',    a.target_optimistic],
+  ];
+  ptData.forEach(function(row) {
+    var priceEl = document.getElementById(row[0]);
+    var chgEl   = document.getElementById(row[1]);
+    if (priceEl) priceEl.textContent = fmt(row[2]);
+    if (chgEl)   chgEl.textContent   = pctChg(row[2]);
+  });
+
+  /* Risks */
+  var risksList = document.getElementById('reporte-risks-list');
+  if (risksList && a.risks && a.risks.length) {
+    risksList.innerHTML = a.risks.map(function(r) { return '<li>' + esc(r) + '</li>'; }).join('');
+  }
+
+  /* Position parameters */
+  var entry = a.entry_price || cur;
+  var stop  = a.stop_loss;
+  var tgt   = a.target_base;
+
+  var posEntry  = document.getElementById('pos-entry');
+  var posStop   = document.getElementById('pos-stop');
+  var posTgt    = document.getElementById('pos-target');
+  var posRR     = document.getElementById('pos-rr');
+  if (posEntry)  posEntry.textContent  = fmt(entry);
+  if (posStop)   posStop.textContent   = fmt(stop);
+  if (posTgt)    posTgt.textContent    = fmt(tgt);
+  if (posRR && entry && stop && tgt) {
+    var reward = Math.abs(tgt   - entry);
+    var risk   = Math.abs(entry - stop);
+    posRR.textContent = risk > 0 ? (reward / risk).toFixed(2) + 'x' : 'N/A';
+  }
+
+  /* AI Summary */
+  var summaryEl   = document.getElementById('ai-summary-text');
+  var reasoningEl = document.getElementById('ai-reasoning-text');
+  var horizonEl   = document.getElementById('ai-time-horizon');
+  if (summaryEl   && a.summary)       summaryEl.textContent   = a.summary;
+  if (reasoningEl && a.reasoning)     reasoningEl.textContent = a.reasoning;
+  if (horizonEl   && a.time_horizon)  horizonEl.textContent   = a.time_horizon;
+}
+
+/* ── REAL generateSignal ──────────────────────────────────── */
+async function generateSignal() {
+  var sym = currentSymbol || 'AAPL';
+
+  if (typeof AF_AI === 'undefined' || !AF_AI.hasApiKey()) {
+    showApiKeyModal(function() { generateSignal(); });
+    return;
+  }
+
+  var btn = document.querySelector('.btn-generate-signal');
+  var origHTML = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Analizando...';
+  }
+
+  switchTab('reporte');
+  showReporteLoading(true);
+
+  try {
+    var result   = await AF_AI.analyze(sym);
+    var analysis = result.analysis;
+    var stockData = result.stockData;
+    renderAIReport(sym, analysis, stockData);
+    showToast('Análisis IA generado para ' + sym, 'success');
+  } catch (err) {
+    showReporteLoading(false);
+    if (err.message === 'NO_KEY') {
+      showApiKeyModal(function() { generateSignal(); });
+    } else {
+      showToast('Error: ' + err.message, 'error');
+    }
+    return;
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = origHTML; }
+    showReporteLoading(false);
+  }
+}
+
+// ── Tab switching ──────────────────────────────────────────────
+var revenueChartInited   = false;
+var sentimentChartInited = false;
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
+  document.querySelectorAll('.tab-panel').forEach(function(panel) {
+    panel.classList.toggle('active', panel.id === 'tab-' + tabId);
+  });
+  if (tabId === 'fundamental' && !revenueChartInited) {
+    revenueChartInited = true;
+    setTimeout(initRevenueChart, 60);
+  }
+  if (tabId === 'sentimiento' && !sentimentChartInited) {
+    sentimentChartInited = true;
+    setTimeout(initSentimentTrendChart, 60);
+  }
+}
+
+// ── Timeframe & indicator buttons ──────────────────────────────
+function setTimeframe(btn, tf) {
+  document.querySelectorAll('.tf-btn').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  // In a real app: reload chart data for the selected timeframe.
+}
+
+function toggleIndicator(ind) {
+  var btn = document.getElementById('ind-' + ind);
+  if (btn) btn.classList.toggle('off');
+}
+
+// ── Generate 60 realistic AAPL-like candles ────────────────────
+function generateAAPLCandles() {
+  // OHLC data: [open, high, low, close]
+  var raw = [
+    [184.5, 187.1, 183.2, 186.8],
+    [186.8, 189.3, 185.9, 188.0],
+    [188.0, 190.5, 186.2, 187.1],
+    [187.1, 188.6, 184.5, 185.3],
+    [185.3, 186.9, 181.8, 182.4],
+    [182.4, 184.1, 180.3, 183.5],
+    [183.5, 185.8, 182.1, 184.9],
+    [184.9, 186.3, 183.4, 185.6],
+    [185.6, 187.4, 184.0, 186.2],
+    [186.2, 188.0, 185.1, 187.3],
+    [187.3, 190.2, 186.5, 189.4],
+    [189.4, 191.8, 188.2, 190.6],
+    [190.6, 192.3, 189.1, 191.5],
+    [191.5, 193.7, 190.4, 192.0],
+    [192.0, 193.1, 188.5, 189.2],
+    [189.2, 190.5, 186.8, 187.4],
+    [187.4, 189.2, 185.6, 188.1],
+    [188.1, 191.3, 187.0, 190.5],
+    [190.5, 193.2, 189.4, 192.4],
+    [192.4, 194.8, 191.6, 193.5],
+    [193.5, 195.0, 191.8, 192.8],
+    [192.8, 193.6, 190.1, 191.2],
+    [191.2, 192.7, 188.4, 189.7],
+    [189.7, 190.8, 187.2, 188.4],
+    [188.4, 190.1, 186.9, 189.5],
+    [189.5, 191.8, 188.3, 190.8],
+    [190.8, 192.5, 189.2, 191.4],
+    [191.4, 193.0, 190.1, 192.3],
+    [192.3, 194.5, 191.0, 193.8],
+    [193.8, 196.2, 192.4, 195.0],
+    [195.0, 197.3, 193.5, 196.1],
+    [196.1, 198.0, 194.8, 195.4],
+    [195.4, 196.8, 192.1, 193.0],
+    [193.0, 194.5, 190.2, 191.6],
+    [191.6, 193.1, 189.8, 192.0],
+    [192.0, 194.3, 191.2, 193.5],
+    [193.5, 195.8, 192.4, 194.9],
+    [194.9, 196.5, 193.3, 195.2],
+    [195.2, 197.1, 194.0, 196.3],
+    [196.3, 198.4, 195.1, 197.5],
+    [197.5, 199.2, 196.0, 198.1],
+    [198.1, 200.5, 197.0, 199.4],
+    [199.4, 201.3, 198.2, 200.0],
+    [200.0, 201.8, 198.5, 199.2],
+    [199.2, 200.3, 196.8, 197.5],
+    [197.5, 198.9, 195.4, 196.1],
+    [196.1, 197.8, 194.6, 197.0],
+    [197.0, 198.5, 196.0, 197.8],
+    [197.8, 199.4, 196.5, 198.6],
+    [198.6, 200.2, 197.3, 199.5],
+    [199.5, 201.0, 198.0, 200.4],
+    [200.4, 202.3, 199.2, 201.5],
+    [201.5, 203.1, 200.0, 202.2],
+    [202.2, 204.0, 201.0, 203.1],
+    [203.1, 204.8, 201.5, 202.5],
+    [202.5, 203.7, 200.2, 201.0],
+    [201.0, 202.5, 199.5, 200.8],
+    [200.8, 202.0, 199.0, 201.3],
+    [201.3, 203.2, 200.2, 182.5],
+    [182.5, 184.0, 180.8, 182.5],
+  ];
+
+  var candles = [];
+  var volumes = [];
+  // Start Jan 2 2024 and skip weekends
+  var d = new Date('2024-01-02T00:00:00Z');
+  for (var i = 0; i < raw.length; i++) {
+    // Advance past weekends
+    while (d.getUTCDay() === 0 || d.getUTCDay() === 6) {
+      d = new Date(d.getTime() + 86400000);
+    }
+    var ts = Math.floor(d.getTime() / 1000);
+    var m  = raw[i];
+    candles.push({ time: ts, open: m[0], high: m[1], low: m[2], close: m[3] });
+    var isBull = m[3] >= m[0];
+    volumes.push({
+      time:  ts,
+      value: Math.floor(38000000 + Math.random() * 55000000),
+      color: isBull ? 'rgba(16,185,129,0.45)' : 'rgba(239,68,68,0.45)',
+    });
+    d = new Date(d.getTime() + 86400000);
+  }
+  return { candles: candles, volumes: volumes };
+}
+
+// ── LightweightCharts: price chart ────────────────────────────
+function initPriceChart() {
+  var container = document.getElementById('price-chart');
+  if (!container) return;
+  if (typeof LightweightCharts === 'undefined') {
+    setTimeout(initPriceChart, 300);
+    return;
+  }
+
+  var chart = LightweightCharts.createChart(container, {
+    width:  container.clientWidth,
+    height: 500,
+    layout: {
+      background: { type: 'solid', color: '#0a0e1a' },
+      textColor: '#94a3b8',
+    },
+    grid: {
+      vertLines: { color: 'rgba(30,45,77,0.5)' },
+      horzLines: { color: 'rgba(30,45,77,0.5)' },
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: '#2563eb', labelBackgroundColor: '#1e2d4d' },
+      horzLine: { color: '#2563eb', labelBackgroundColor: '#1e2d4d' },
+    },
+    rightPriceScale: {
+      borderColor: '#1e2d4d',
+      textColor:   '#94a3b8',
+    },
+    timeScale: {
+      borderColor:    '#1e2d4d',
+      timeVisible:    true,
+      secondsVisible: false,
+    },
+    handleScroll: true,
+    handleScale:  true,
+  });
+
+  var data = generateAAPLCandles();
+
+  var candleSeries = chart.addCandlestickSeries({
+    upColor:        '#10b981',
+    downColor:      '#ef4444',
+    borderUpColor:  '#10b981',
+    borderDownColor:'#ef4444',
+    wickUpColor:    '#10b981',
+    wickDownColor:  '#ef4444',
+  });
+  candleSeries.setData(data.candles);
+
+  // Volume histogram
+  var volumeSeries = chart.addHistogramSeries({
+    priceFormat:  { type: 'volume' },
+    priceScaleId: 'volume',
+  });
+  volumeSeries.setData(data.volumes);
+  chart.priceScale('volume').applyOptions({
+    scaleMargins: { top: 0.85, bottom: 0 },
+  });
+
+  // EMA 20 overlay (MA indicator)
+  var emaData = [];
+  var k = 2 / (20 + 1);
+  var emaVal = data.candles[0].close;
+  data.candles.forEach(function(c) {
+    emaVal = c.close * k + emaVal * (1 - k);
+    emaData.push({ time: c.time, value: parseFloat(emaVal.toFixed(2)) });
+  });
+  chart.addLineSeries({
+    color:             '#f59e0b',
+    lineWidth:         1,
+    priceLineVisible:  false,
+    lastValueVisible:  false,
+  }).setData(emaData);
+
+  chart.timeScale().fitContent();
+
+  // Responsive resize
+  if (typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(function(entries) {
+      var w = entries[0].contentRect.width;
+      chart.applyOptions({ width: w });
+    });
+    ro.observe(container);
+  }
+}
+
+// ── Chart.js: RSI mini chart ───────────────────────────────────
+function initRsiChart() {
+  var ctx = document.getElementById('rsi-chart');
+  if (!ctx || typeof Chart === 'undefined') return;
+  var rsiVals = [55,52,48,45,42,41,43,44,46,43,40,38,36,39,42,45,44,42,40,38,37,40,43,42,41,42];
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels:   rsiVals.map(function(_, i) { return i; }),
+      datasets: [
+        {
+          data:        rsiVals,
+          borderColor: '#2563eb',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          tension:     0.3,
+          fill:        false,
+        },
+        {
+          data:        rsiVals.map(function() { return 70; }),
+          borderColor: 'rgba(239,68,68,0.45)',
+          borderWidth: 1,
+          borderDash:  [4, 4],
+          pointRadius: 0,
+          fill:        false,
+        },
+        {
+          data:        rsiVals.map(function() { return 30; }),
+          borderColor: 'rgba(16,185,129,0.45)',
+          borderWidth: 1,
+          borderDash:  [4, 4],
+          pointRadius: 0,
+          fill:        false,
+        }
+      ]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      animation:           false,
+      plugins: {
+        legend:  { display: false },
+        tooltip: { enabled: false },
+      },
+      scales: {
+        x: { display: false },
+        y: {
+          min: 0, max: 100,
+          grid:   { color: 'rgba(30,45,77,0.4)' },
+          ticks:  { color: '#64748b', font: { size: 9 }, stepSize: 25 },
+          border: { color: '#1e2d4d' },
+        }
+      }
+    }
+  });
+}
+
+// ── Chart.js: MACD histogram ───────────────────────────────────
+function initMacdChart() {
+  var ctx = document.getElementById('macd-chart');
+  if (!ctx || typeof Chart === 'undefined') return;
+  var hist = [-0.8,-0.6,-0.4,-0.2,0.0,0.3,0.5,0.7,0.9,0.8,0.6,0.4,0.2,0.3,0.5,0.7,0.8,0.6,0.4,0.2,0.0,-0.1,0.1,0.3,0.5,0.6];
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels:   hist.map(function(_, i) { return i; }),
+      datasets: [{
+        data:            hist,
+        backgroundColor: hist.map(function(v) { return v >= 0 ? 'rgba(16,185,129,0.6)' : 'rgba(239,68,68,0.6)'; }),
+        borderColor:     hist.map(function(v) { return v >= 0 ? '#10b981' : '#ef4444'; }),
+        borderWidth:     1,
+        borderRadius:    2,
+      }]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      animation:           false,
+      plugins: {
+        legend:  { display: false },
+        tooltip: { enabled: false },
+      },
+      scales: {
+        x: { display: false },
+        y: {
+          grid:   { color: 'rgba(30,45,77,0.4)' },
+          ticks:  { color: '#64748b', font: { size: 9 } },
+          border: { color: '#1e2d4d' },
+        }
+      }
+    }
+  });
+}
+
+// ── Chart.js: Revenue bar chart (Fundamental tab) ──────────────
+function initRevenueChart() {
+  var ctx = document.getElementById('revenue-chart');
+  if (!ctx || typeof Chart === 'undefined') return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels:   ['2020', '2021', '2022', '2023'],
+      datasets: [{
+        label:           'Ingresos (B USD)',
+        data:            [274.5, 365.8, 394.3, 383.3],
+        backgroundColor: 'rgba(37,99,235,0.65)',
+        borderColor:     '#2563eb',
+        borderWidth:     1,
+        borderRadius:    6,
+        borderSkipped:   false,
+      }]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      animation:           { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1629',
+          borderColor:     '#1e2d4d',
+          borderWidth:     1,
+          titleColor:      '#94a3b8',
+          bodyColor:       '#e2e8f0',
+          callbacks: {
+            label: function(ctx) { return ' $' + ctx.parsed.y + 'B'; }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid:   { display: false },
+          ticks:  { color: '#94a3b8' },
+          border: { color: '#1e2d4d' },
+        },
+        y: {
+          min:  0,
+          grid:   { color: 'rgba(30,45,77,0.5)' },
+          ticks:  { color: '#94a3b8', callback: function(v) { return '$' + v + 'B'; } },
+          border: { color: '#1e2d4d' },
+        }
+      }
+    }
+  });
+}
+
+// ── Chart.js: Sentiment trend line chart ───────────────────────
+function initSentimentTrendChart() {
+  var ctx = document.getElementById('sentiment-trend');
+  if (!ctx || typeof Chart === 'undefined') return;
+  var days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Hoy'];
+  var vals = [0.45, 0.52, 0.61, 0.58, 0.68, 0.71, 0.72];
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels:   days,
+      datasets: [{
+        label:           'Sentimiento',
+        data:            vals,
+        borderColor:     '#10b981',
+        backgroundColor: 'rgba(16,185,129,0.08)',
+        borderWidth:     2,
+        pointRadius:     4,
+        pointBackgroundColor: '#10b981',
+        pointBorderColor:     '#0a0e1a',
+        pointBorderWidth:     2,
+        tension: 0.35,
+        fill:    true,
+      }]
+    },
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      animation:           { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0f1629',
+          borderColor:     '#1e2d4d',
+          borderWidth:     1,
+          titleColor:      '#94a3b8',
+          bodyColor:       '#10b981',
+          callbacks: {
+            label: function(ctx) { return ' +' + ctx.parsed.y.toFixed(2); }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid:   { color: 'rgba(30,45,77,0.4)' },
+          ticks:  { color: '#94a3b8', font: { size: 11 } },
+          border: { color: '#1e2d4d' },
+        },
+        y: {
+          min: 0, max: 1,
+          grid:   { color: 'rgba(30,45,77,0.4)' },
+          ticks:  { color: '#94a3b8', font: { size: 11 }, stepSize: 0.25 },
+          border: { color: '#1e2d4d' },
+        }
+      }
+    }
+  });
+}
+
+// ── Bootstrap on DOM ready ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  updateMarketStatus();
+
+  // Init Técnico charts
+  function tryInitTecnico() {
+    var lwcReady   = typeof LightweightCharts !== 'undefined';
+    var chartReady = typeof Chart !== 'undefined';
+    if (lwcReady)   initPriceChart();
+    if (chartReady) { initRsiChart(); initMacdChart(); }
+    if (!lwcReady || !chartReady) setTimeout(tryInitTecnico, 300);
+  }
+  tryInitTecnico();
+});
+</script>
+</body>
+</html>
