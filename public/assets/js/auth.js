@@ -313,6 +313,33 @@ function initLoginForm() {
 
     setButtonLoading(submitBtn, 'Signing in…');
 
+    // Demo mode: on GitHub Pages or with demo credentials, bypass the real API
+    const isStaticHost = window.location.hostname.includes('github.io') ||
+                         window.location.protocol === 'file:';
+    const isDemoCreds  = email === 'demo@alphaforge.com';
+
+    if (isStaticHost || isDemoCreds) {
+      const header  = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({
+        sub: '1',
+        email: email || 'demo@alphaforge.com',
+        name: 'Demo User',
+        exp: Math.floor(Date.now() / 1000) + 86400,
+      }));
+      const demoToken = `${header}.${payload}.demo_signature`;
+
+      window.AlphaForgeAPI.setToken(demoToken);
+      localStorage.setItem('af_token', demoToken);
+      localStorage.setItem('af_user', JSON.stringify({
+        first_name: 'Demo',
+        last_name: 'User',
+        email: email || 'demo@alphaforge.com',
+        role: 'trader',
+      }));
+      window.location.href = '../dashboard/index.html';
+      return;
+    }
+
     try {
       const response = await window.AlphaForgeAPI.auth.login(email, password);
 
@@ -323,7 +350,7 @@ function initLoginForm() {
       }
 
       // Redirect to dashboard
-      window.location.href = '/views/dashboard/index.html';
+      window.location.href = '../dashboard/index.html';
     } catch (err) {
       const message = (err && err.message) ? err.message : 'Invalid email or password. Please try again.';
       showFormError('login-error', message);

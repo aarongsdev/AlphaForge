@@ -149,7 +149,12 @@ const AlphaForge = (() => {
       // Auth guard
       const hasToken = !!(window.AlphaForgeAPI && window.AlphaForgeAPI.getToken());
       if (!hasToken && !_isAuthPage()) {
-        window.location.href = '/views/auth/login.html';
+        const segments = window.location.pathname.split('/');
+        const viewsIdx = segments.lastIndexOf('views');
+        const loginPath = viewsIdx >= 0
+          ? segments.slice(0, viewsIdx + 1).join('/') + '/auth/login.html'
+          : '../auth/login.html';
+        window.location.href = loginPath;
         return;
       }
 

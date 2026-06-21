@@ -63,9 +63,9 @@ class MACD
         }
 
         // Build signal-EMA input: a dense array of MACD values from $macdStart onward.
-        // Guard: if $macdStart stayed -1 (no valid fast+slow EMA overlap), return early.
+        // Guard: if $macdStart stayed -1 (no valid fast+slow EMA overlap), return empty result.
         if ($macdStart < 0) {
-            return $result;
+            return array_fill(0, $n, ['macd' => null, 'signal' => null, 'histogram' => null]);
         }
 
         $macdDense = [];

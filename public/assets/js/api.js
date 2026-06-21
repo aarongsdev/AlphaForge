@@ -87,8 +87,14 @@ const AlphaForgeAPI = (() => {
         if (response.status === 401) {
           clearToken();
           const currentPath = window.location.pathname + window.location.hash;
-          const loginPath = '/views/auth/login.html';
           if (!currentPath.includes('login')) {
+            // Navigate relative to current depth: from /views/dashboard/ go up two levels,
+            // from /views/auth/ just use the same directory.
+            const segments = window.location.pathname.split('/');
+            const viewsIdx = segments.lastIndexOf('views');
+            const loginPath = viewsIdx >= 0
+              ? segments.slice(0, viewsIdx + 1).join('/') + '/auth/login.html'
+              : 'login.html';
             window.location.href = loginPath;
           }
           const errBody = await _safeParseJSON(response);
@@ -219,7 +225,12 @@ const AlphaForgeAPI = (() => {
        */
       logout: () => {
         clearToken();
-        window.location.href = '/views/auth/login.html';
+        const segments = window.location.pathname.split('/');
+        const viewsIdx = segments.lastIndexOf('views');
+        const loginPath = viewsIdx >= 0
+          ? segments.slice(0, viewsIdx + 1).join('/') + '/auth/login.html'
+          : 'login.html';
+        window.location.href = loginPath;
       },
 
       /**

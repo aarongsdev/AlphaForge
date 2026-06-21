@@ -6,7 +6,7 @@
 <title>Dashboard — AlphaForge</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/assets/css/main.css">
+<link rel="stylesheet" href="../../assets/css/main.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
 <style>
@@ -431,7 +431,7 @@ function toggleSidebar() {
 function logout() {
   localStorage.removeItem('af_token');
   localStorage.removeItem('af_user');
-  window.location.href = '/views/auth/login.html';
+  window.location.href = '../../views/auth/login.html';
 }
 
 const user = JSON.parse(localStorage.getItem('af_user') || '{}');
