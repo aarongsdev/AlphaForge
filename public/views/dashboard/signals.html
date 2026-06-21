@@ -1830,6 +1830,34 @@ async function generateAISignals() {
 /* ─── Boot ────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function () {
   initUser();
+
+  /* Load cached AI signals if they exist (replaces demo SIGNALS) */
+  if (typeof AF_AI !== 'undefined') {
+    const cached   = AF_AI.getCachedSignals();
+    const cacheAge = AF_AI.getCacheAge(); // minutes
+    if (cached && cached.length) {
+      const converted = [];
+      cached.forEach(r => {
+        if (r._failed || !r.recommendation) return;
+        const asset = (typeof ALL_MARKET_ASSETS !== 'undefined')
+          ? ALL_MARKET_ASSETS.find(a => a.sym.toUpperCase() === (r.symbol || '').toUpperCase())
+          : null;
+        converted.push(aiToSignal(
+          asset || { sym: r.symbol, name: r.symbol, assetType: 'Acciones' },
+          r
+        ));
+      });
+      if (converted.length) {
+        SIGNALS.length = 0;
+        converted.forEach(s => SIGNALS.push(s));
+        const ageLabel = cacheAge !== null
+          ? (cacheAge < 60 ? `Hace ${cacheAge} min` : `Hace ${Math.round(cacheAge/60)}h`)
+          : '';
+        showToast('Señales cargadas desde caché' + (ageLabel ? ' — ' + ageLabel : ''), 'success');
+      }
+    }
+  }
+
   renderTable();
   updateMarketStatus();
   updateTimestamp();

@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="../../assets/css/dashboard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+<script src="../../assets/js/market-data.js"></script>
 <style>
 .market-overview-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem; }
 .market-card { background: #141d35; border: 1px solid #1e2d4d; border-radius: 12px; padding: 1.25rem; }
@@ -134,9 +135,9 @@
     <input type="text" id="global-search" class="global-search" placeholder="Buscar símbolo... AAPL, BTC, SPY" autocomplete="off" style="width:100%;padding:0.5rem 1rem;background:#0f1629;border:1px solid #1e2d4d;border-radius:8px;color:#e2e8f0;font-size:0.875rem;">
   </div>
   <div class="topbar-tickers" id="market-tickers" style="display:flex;gap:1.5rem;align-items:center;">
-    <div class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">S&P500</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">5,234.18</span><span class="t-chg positive" style="color:#10b981;">+0.43%</span></div>
-    <div class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">NASDAQ</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">18,421.31</span><span class="t-chg positive" style="color:#10b981;">+0.61%</span></div>
-    <div class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">BTC</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">67,842</span><span class="t-chg negative" style="color:#ef4444;">-1.24%</span></div>
+    <div id="ticker-sp500" class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">S&P500</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">—</span><span class="t-chg" style="color:#94a3b8;">…</span></div>
+    <div id="ticker-nasdaq" class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">NASDAQ</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">—</span><span class="t-chg" style="color:#94a3b8;">…</span></div>
+    <div id="ticker-btc" class="ticker-chip" style="display:flex;gap:0.375rem;align-items:center;font-size:0.8125rem;"><span class="t-sym" style="color:#64748b;">BTC</span><span class="t-price" style="color:#e2e8f0;font-family:'JetBrains Mono',monospace;">—</span><span class="t-chg" style="color:#94a3b8;">…</span></div>
   </div>
   <div class="topbar-actions" style="display:flex;align-items:center;gap:1rem;">
     <div class="market-status-indicator" style="display:flex;align-items:center;gap:0.375rem;font-size:0.75rem;color:#94a3b8;">
@@ -153,20 +154,20 @@
   <div class="market-overview-grid">
     <div class="market-card">
       <div class="card-label">S&P 500</div>
-      <div class="card-value" id="sp500-price">5,234.18</div>
-      <div class="card-change positive">▲ +22.68 (+0.43%)</div>
+      <div class="card-value" id="sp500-price">—</div>
+      <div class="card-change" id="sp500-change" style="color:#94a3b8;">Cargando…</div>
       <canvas id="spark-sp500" height="50" style="margin-top:0.5rem;"></canvas>
     </div>
     <div class="market-card">
       <div class="card-label">NASDAQ 100</div>
-      <div class="card-value" id="nasdaq-price">18,421.31</div>
-      <div class="card-change positive">▲ +111.84 (+0.61%)</div>
+      <div class="card-value" id="nasdaq-price">—</div>
+      <div class="card-change" id="nasdaq-change" style="color:#94a3b8;">Cargando…</div>
       <canvas id="spark-nasdaq" height="50" style="margin-top:0.5rem;"></canvas>
     </div>
     <div class="market-card">
       <div class="card-label">BTC / USD</div>
-      <div class="card-value" id="btc-price">$67,842</div>
-      <div class="card-change negative">▼ -851.50 (-1.24%)</div>
+      <div class="card-value" id="btc-price">—</div>
+      <div class="card-change" id="btc-change" style="color:#94a3b8;">Cargando…</div>
       <canvas id="spark-btc" height="50" style="margin-top:0.5rem;"></canvas>
     </div>
     <div class="market-card">
@@ -445,11 +446,6 @@ function toggleSidebar() {
     if (topbar) topbar.classList.toggle('sidebar-collapsed');
   }
 }
-    overlay.classList.toggle('active');
-  } else {
-    sidebar.classList.toggle('collapsed');
-  }
-}
 
 function logout() {
   localStorage.removeItem('af_token');
@@ -464,7 +460,40 @@ if (user.first_name) {
   document.getElementById('user-role-display').textContent = user.role || 'viewer';
 }
 
-renderSignals(DEMO_SIGNALS);
+/* Try to show cached AI signals; fall back to demo */
+(function loadSignals() {
+  let signals = DEMO_SIGNALS;
+  if (typeof AF_AI !== 'undefined') {
+    const cached = AF_AI.getCachedSignals();
+    if (cached && cached.length) {
+      // Convert bulk-cache format → dashboard signal format
+      const converted = cached
+        .filter(r => !r._failed && r.recommendation)
+        .slice(0, 6)
+        .map(r => ({
+          id: r.symbol,
+          symbol: r.symbol,
+          signal: r.recommendation,
+          strength: r.confidence >= 80 ? 'strong' : r.confidence >= 60 ? 'moderate' : 'weak',
+          confidence_score: r.confidence ?? 50,
+          entry_price: r.entry_price ?? 0,
+          target_price_1: r.target_base ?? r.target_conservative ?? 0,
+          stop_loss: r.stop_loss ?? 0,
+          risk_reward_ratio: (() => {
+            if (!r.entry_price || !r.stop_loss || !r.target_base) return 0;
+            const reward = Math.abs(r.target_base - r.entry_price);
+            const risk   = Math.abs(r.entry_price - r.stop_loss);
+            return risk > 0 ? +(reward / risk).toFixed(2) : 0;
+          })(),
+          reasoning: r.reasoning || '',
+          timeframe: r.time_horizon || 'Corto Plazo',
+        }));
+      if (converted.length) signals = converted;
+    }
+  }
+  renderSignals(signals);
+})();
+
 renderWatchlist(DEMO_WATCHLIST);
 renderNews(DEMO_NEWS);
 renderPortfolioChart();
@@ -472,6 +501,9 @@ renderSparklines();
 renderFearGreed(72);
 updateMarketStatus();
 document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES');
+
+/* Live market data */
+if (typeof AF_MD !== 'undefined') AF_MD.init();
 
 setInterval(() => {
   updateMarketStatus();
